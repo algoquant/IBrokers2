@@ -1,0 +1,50 @@
+############
+### ToDo list for package IBrokers2: high frequency data scrubbing
+
+### scripts for package building
+
+## Steps for installing package called my_package, containing Rcpp code:
+1. Create empty package directory with Rcpp::Rcpp.package.skeleton()
+2. In the R directory create a file called my_package.R and add the header:
+
+#' @useDynLib my_package
+#' @importFrom Rcpp evalCpp
+#' @exportPattern "^[[:alpha:]]+"
+NULL
+
+Add your R functions below the header.
+
+3. Clean and rebuild (in Build menu)
+
+
+## Build scripts:
+
+# Install package from source on local drive
+install.packages(pkgs="C:/Develop/R/IBrokers2", repos=NULL, type="source")
+# Install package from source on local drive using R CMD
+R CMD INSTALL C:\Develop\R\IBrokers2
+# Install package from github
+devtools::install_github(repo="algoquant/IBrokers2", force=TRUE)
+# build vignette package reference manual from *.Rd files
+system("R CMD Rd2pdf C:/Develop/R/IBrokers2")
+cd C:\Develop\R\IBrokers2\vignettes
+R CMD Rd2pdf C:\Develop\R\IBrokers2\
+
+
+
+### comments
+
+
+
+### tasks to-do
+
++ [ ] Create IBrokers2 project directory in RStudio
+
+
+
+### tasks finished
+
+
+
+### tasks deprecated
+

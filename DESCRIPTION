@@ -1,0 +1,18 @@
+Package: IBrokers2
+Type: Package
+Title: R API to Interactive Brokers (clone of IBrokers)
+Version: 0.9-12
+Date: 2018-10-29
+Depends: xts, zoo
+Author: Jeffrey A. Ryan
+Maintainer: Jerzy Pawlowski <jp3900@nyu.edu>
+Description: Provides native R access to Interactive Brokers Trader Workstation API (clone of IBrokers)
+License: GPL-3
+NeedsCompilation: no
+VignetteBuilder: knitr
+LazyData: true
+ByteCompile: true
+Repository: GitHub
+URL: https://github.com/algoquant/IBrokers2
+RoxygenNote: 6.1.0
+Encoding: UTF-8
