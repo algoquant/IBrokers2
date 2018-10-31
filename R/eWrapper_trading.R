@@ -1,5 +1,13 @@
+#' Create a wrapper environment and define the function realtimeBars() for
+#' running systematic trading strategies in a callback loop.
+#'
+#' @details The function \code{trade_wrapper()} is derived from
+#'   \code{IBrokers::eWrapper.RealTimeBars.CSV()}. It creates a wrapper
+#'   environment and defines the function realtimeBars() for running systematic
+#'   trading strategies in a callback loop.
+#'
 #' @export
-eWrapper_realtimebars <- function (n = 1) {
+trade_wrapper <- function (n = 1) {
   eW <- eWrapper_new(NULL)
   # eW <- IBrokers::eWrapper(NULL)
   eW$assign.Data("data", rep(list(structure(.xts(matrix(rep(NA_real_, 7), ncol = 7), 0), .Dimnames = list(NULL, c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")))), n))
@@ -42,13 +50,13 @@ eWrapper_realtimebars <- function (n = 1) {
     # Execute buy limit order
     buy_id <- as.numeric(IBrokers::reqIds(ib_connect))
     buy_order <- IBrokers::twsOrder(buy_id, orderType="LMT",
-                                    lmtPrice=(as.numeric(msg[6])-0.75), action="BUY", totalQuantity=1)
+                                    lmtPrice=(as.numeric(msg[6])-0.25), action="BUY", totalQuantity=1)
     IBrokers::placeOrder(ib_connect, con_tract, buy_order)
     # Execute sell limit order
     sell_id <- as.numeric(IBrokers::reqIds(ib_connect))
     # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
     sell_order <- IBrokers::twsOrder(sell_id, orderType="LMT",
-                                     lmtPrice=(as.numeric(msg[5])+0.75), action="SELL", totalQuantity=1)
+                                     lmtPrice=(as.numeric(msg[5])+0.25), action="SELL", totalQuantity=1)
     # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
     IBrokers::placeOrder(ib_connect, con_tract, sell_order)
     # Copy new trade orders
@@ -62,7 +70,7 @@ eWrapper_realtimebars <- function (n = 1) {
     c(curMsg, msg)
   }  # end eW$realtimeBars
   return(eW)
-}  # end eWrapper_realtimebars
+}  # end trade_wrapper
 
 
 #' @export

@@ -32,14 +32,21 @@ R CMD Rd2pdf C:\Develop\R\IBrokers2\
 
 
 
-### comments
+### Comments and package analysis
+
+# List of numeric codes of commands stored as a named list
+IBrokers::.twsIncomingMSG
+
 
 
 
 ### tasks to-do
 
-+ [ ] Create IBrokers2 project directory in RStudio
++ [x] Create IBrokers2 project directory in RStudio
 
++ [ ] In realtimeBars() copy bar data into the event wrapper environment
+
++ [ ] In realtimeBars() check for trade status instead of copying tradeID
 
 
 ### tasks finished

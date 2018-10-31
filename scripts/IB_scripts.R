@@ -1,38 +1,57 @@
 ####################################
-### Scripts for trading through Interactive Brokers 
+### Scripts for trading through Interactive Brokers
 ### using package IBrokers.
 
 
-####################################
-### Scripts for IBrokers2 callback loop
-
 library(HighFreq)
+
+
+####################################
+### Scripts for account information
+
+# library(IButils)
 library(IBrokers2)
+
+# wipp
+# IButils::flex_web_service(file = "C:/Develop/R/IBrokers/my_report.csv",
+#                  token = "12345678901234567890",
+#                  query = 123)
+
+# Doesn't work
+# foo <- IBrokers2::reqExecutions(ib_connect)
+# foo <- IBrokers2::reqOpenOrders(ib_connect)
+
+
+
+####################################
+### Scripts for running a simple trading strategy in a callback loop:
+
 con_tract <- IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812")
 
-source("C:/Develop/R/IBrokers2/ibrokers_eWrapper.R")
+# source("C:/Develop/R/IBrokers/ibrokers_eWrapper.R")
 
 data_dir <- "C:/Develop/data/ib_data"
-file_name <- file.path(data_dir, "ES_ohlc_live_10_29_18.csv")
+file_name <- file.path(data_dir, "ES_ohlc_live_11_01_18.csv")
 file_connect <- file(file_name, open="w")
 
 ib_connect <- IBrokers2::twsConnect(port=7497)
-IBrokers2::reqRealTimeBars(conn=ib_connect, 
-                          Contract=con_tract, barSize="10",
-                          eventWrapper=eWrapper_realtimebars(1),
-                          file=file_connect)
+IBrokers2::reqRealTimeBars(conn=ib_connect,
+                           Contract=con_tract, barSize="30", useRTH=FALSE,
+                           eventWrapper=IBrokers2::trade_wrapper(1),
+                           CALLBACK=twsCALLBACK,
+                           file=file_connect)
 IBrokers2::twsDisconnect(ib_connect)
 
 close(file_connect)
 
 
-IBrokers2::reqOpenOrders(ib_connect)
+# IBrokers2::reqOpenOrders(ib_connect)
 
 
 
 
 ####################################
-### Scripts for downloading market data from 
+### Scripts for downloading market data from
 ### Interactive Brokers using package IBrokers.
 
 # devtools::install_github(repo="joshuaulrich/IBrokers")
@@ -44,20 +63,20 @@ library(IBrokers)
 
 
 ## iBrokers trivial download script found somewhere
-# Connect through Gateway and Windows 
-ib_connect <- IBrokers::ibgConnect(clientId=1, host='localhost', port=4002, verbose=TRUE, timeout=5, filename=NULL, blocking=.Platform$OS.type=="windows") 
-# Define a Ticker, Exchange and Source 
-con_tract <- IBrokers::twsEquity("AAPL", "SMART", "NYSE") 
-# Current market data 
-price_s <- IBrokers::reqMktData(ib_connect, con_tract) 
-# Real time tick bars 
-price_s <- IBrokers::reqRealTimeBars(ib_connect, con_tract) 
-# Loop to check data every 1 second 
-for (i in 1:60) { 
-  # Call function to check for crossovers 
-  Sys.sleep(1) 
+# Connect through Gateway and Windows
+ib_connect <- IBrokers::ibgConnect(clientId=1, host='localhost', port=4002, verbose=TRUE, timeout=5, filename=NULL, blocking=.Platform$OS.type=="windows")
+# Define a Ticker, Exchange and Source
+con_tract <- IBrokers::twsEquity("AAPL", "SMART", "NYSE")
+# Current market data
+price_s <- IBrokers::reqMktData(ib_connect, con_tract)
+# Real time tick bars
+price_s <- IBrokers::reqRealTimeBars(ib_connect, con_tract)
+# Loop to check data every 1 second
+for (i in 1:60) {
+  # Call function to check for crossovers
+  Sys.sleep(1)
 }  # end loop
-# Disconnect from the Gateway 
+# Disconnect from the Gateway
 twsDisconnect(ib_connect)
 
 
@@ -66,19 +85,19 @@ twsDisconnect(ib_connect)
 ## Download raw data for replay, and then replay it
 
 # define S&P Emini futures December 2018 contract
-snp_contract <- twsFuture(symbol="ES", 
+snp_contract <- twsFuture(symbol="ES",
   exch="GLOBEX", expiry="201812")
 # define VIX futures December 2018 contract
-vix_contract <- twsFuture(symbol="VIX", 
+vix_contract <- twsFuture(symbol="VIX",
   local="VXZ8", exch="CFE", expiry="201812")
 # define 10yr Treasury futures December 2018 contract
-trs_contract <- twsFuture(symbol="ZN", 
+trs_contract <- twsFuture(symbol="ZN",
   exch="ECBOT", expiry="201812")
 # define Emini gold futures December 2018 contract
-gold_contract <- twsFuture(symbol="YG", 
+gold_contract <- twsFuture(symbol="YG",
   exch="NYSELIFFE", expiry="201812")
 # define euro currency future December 2018 contract
-euro_contract <- twsFuture(symbol="EUR", 
+euro_contract <- twsFuture(symbol="EUR",
   exch="GLOBEX", expiry="201812")
 reqContractDetails(conn=ib_connect, Contract=euro_contract)
 
@@ -101,7 +120,7 @@ error_ewrapper <- eWrapper(debug=NULL, errfile=error_connect)
 # create eWrapper for raw data
 raw_ewrapper <- eWrapper(debug=TRUE)
 
-# redirect error messages to error eWrapper (error_ewrapper), 
+# redirect error messages to error eWrapper (error_ewrapper),
 # by replacing handler function errorMessage() in raw_ewrapper
 raw_ewrapper$errorMessage <- error_ewrapper$errorMessage
 
@@ -111,8 +130,8 @@ ib_connect <- twsConnect()
 ib_connect <- twsConnect(port=7497)
 
 # download raw data for multiple contracts for replay
-reqMktData(ib_connect, 
-  list(snp_contract, vix_contract, trs_contract, gold_contract, euro_contract), 
+reqMktData(ib_connect,
+  list(snp_contract, vix_contract, trs_contract, gold_contract, euro_contract),
   eventWrapper=raw_ewrapper, file=raw_connect)
 
 # close the Interactive Brokers API connection
@@ -136,14 +155,14 @@ reqMktData(raw_connect, list(snp_contract, vix_contract))
 # open file for data
 file_connect <- file(file.path(data_dir, "temp.csv"), open="w")
 # download TAQ data to file
-reqMktData(conn=raw_connect, 
-           Contract=snp_contract, 
+reqMktData(conn=raw_connect,
+           Contract=snp_contract,
            eventWrapper=eWrapper.MktData.CSV(1),
            file=file_connect)
 
 # download bar to file
-reqRealTimeBars(conn=raw_connect, 
-                Contract=snp_contract, 
+reqRealTimeBars(conn=raw_connect,
+                Contract=snp_contract,
                 barSize="1",
                 eventWrapper=eWrapper.RealTimeBars.CSV(1),
                 file=file_connect)
@@ -230,39 +249,39 @@ ib_time <- paste0(gsub(pattern="-", replacement="", ib_time), " EDT")
 contract_info <- IBrokers::reqContractDetails(conn=ib_connect, Contract=con_tract)
 contract_info <- contract_info[[1]]
 contract_info$longName
-IBrokers::reqContractDetails(conn=ib_connect, 
+IBrokers::reqContractDetails(conn=ib_connect,
                              Contract=IBrokers::twsFuture("VIX", "CFE", "201809"))
 
 IBrokers::reqContractDetails(conn=ib_connect, Contract=IBrokers::twsEquity("AAPL"))
 
 
 # download data to file
-foo <- IBrokers::reqHistoricalData(conn=ib_connect, 
-                            Contract=con_tract, 
+foo <- IBrokers::reqHistoricalData(conn=ib_connect,
+                            Contract=con_tract,
                             # whatToShow="MIDPOINT",
                             # endDateTime=ib_time,
                             barSize="1 day",
                             duration="6 M",
                             file=file_connect)
 
-foo <- IBrokers::reqHistory(conn=ib_connect, 
-                            Contract=con_tract, 
+foo <- IBrokers::reqHistory(conn=ib_connect,
+                            Contract=con_tract,
                             barSize="1 min")
 
 
-IBrokers::reqHistoricalData(conn=ib_connect, 
-                            Contract=con_tract, 
+IBrokers::reqHistoricalData(conn=ib_connect,
+                            Contract=con_tract,
                             endDateTime=Sys.time(),
                             barSize="1 min",
                             duration="1 M",
                             file=file_connect)
 
-IBrokers::reqMktData(conn=ib_connect, 
+IBrokers::reqMktData(conn=ib_connect,
                      twsEquity("AAPL"),
                      eventWrapper=eWrapper.MktData.CSV(1),
                      file=file_connect)
 
-IBrokers::reqRealTimeBars(conn=ib_connect, 
+IBrokers::reqRealTimeBars(conn=ib_connect,
                      twsEquity("AAPL"),
                      eventWrapper=eWrapper.MktData.CSV(1),
                      file=file_connect)
@@ -276,8 +295,8 @@ IBrokers::twsDisconnect(ib_connect)
 
 ## Load time series data from a single csv file
 
-price_s <- read.csv(file=file_name, 
-                    stringsAsFactors=FALSE, sep=",", 
+price_s <- read.csv(file=file_name,
+                    stringsAsFactors=FALSE, sep=",",
                     header=FALSE)
 
 price_s <- xts::xts(price_s[, -1],
@@ -324,14 +343,14 @@ month_codes <- c("N", "Q", "U", "V", "X", "Z", "F", "G", "H", "J", "K", "M", "N"
 
 sapply(1:NROW(month_codes), function(it) {
   lo_cal <- paste0("VX", month_codes[it], year_s[it])
-  con_tract <- twsFuture(symbol=sym_bol, 
+  con_tract <- twsFuture(symbol=sym_bol,
                          include_expired="1",
-                         local=lo_cal, 
+                         local=lo_cal,
                          exch=ex_change, expiry=month_s[it])
   file_name <- file.path(data_dir, paste0(lo_cal, ".csv"))
   file_connect <- file(file_name, open="w")
-  reqHistoricalData(conn=ib_connect, 
-                    Contract=con_tract, 
+  reqHistoricalData(conn=ib_connect,
+                    Contract=con_tract,
                     barSize="1 day", duration="2 Y",
                     file=file_connect)
   # close data file
@@ -411,7 +430,7 @@ library(HighFreq)
 load(file="C:/Develop/data/ES1.RData")
 # or
 # load ES1 futures data from CSV file
-oh_lc <- read.zoo(file="C:/Develop/data/bar_data/ES1.csv", 
+oh_lc <- read.zoo(file="C:/Develop/data/bar_data/ES1.csv",
                   header=TRUE, sep=",",
                   drop=FALSE, format="%Y-%m-%d %H:%M",
                   FUN=as.POSIXct, tz="America/New_York")
@@ -444,7 +463,7 @@ for (file_name in file_names) {
   file_name <- strsplit(file_name, split="/")[[1]]
   file_name <- file_name[NROW(file_name)]
   # load time series data from CSV file
-  oh_lc <- read.zoo(file=file_name, 
+  oh_lc <- read.zoo(file=file_name,
                     header=TRUE, sep=",",
                     drop=FALSE, format="%Y-%m-%d %H:%M",
                     FUN=as.POSIXct, tz="America/New_York")
@@ -486,8 +505,8 @@ for (sym_bol in sym_bols) {
 ## Combine the ETF series of prices into a single xts series and save it into etf_env
 
 # extract only first 4 OHLC price columns from each ETF series
-assign(x="oh_lc", 
-       value=rutils::do_call(cbind, eapply(etf_env, function(x_ts) x_ts[, 1:4])), 
+assign(x="oh_lc",
+       value=rutils::do_call(cbind, eapply(etf_env, function(x_ts) x_ts[, 1:4])),
        envir=etf_env)
 # oh_lc <- rutils::do_call(cbind, eapply(etf_env, function(x_ts) x_ts[, 1:4]))
 etf_env$oh_lc <- na.omit(etf_env$oh_lc)
@@ -546,79 +565,79 @@ dygraphs::dygraph(oh_lc[endpoints(oh_lc, on="hours"), label_s], main="OHLC Data"
 
 # /a/ks/spy25/actonit.r
 
-# I use this script to act on predictions written to this file:  
-# /a/ks/spy25/data/prediction.csv  
-# The tail end of the csv looks like this:  
+# I use this script to act on predictions written to this file:
+# /a/ks/spy25/data/prediction.csv
+# The tail end of the csv looks like this:
 # 1414625400 197.835 0.594 0.586
 
-# I want to be long or short by this amount:  
+# I want to be long or short by this amount:
 possize = 3
 
 arow = read.csv('data/prediction.csv', sep=' ', header=FALSE)
 
-ptime = as.integer(arow[1][1])  
-print(ptime)  
-etime = as.POSIXct(ptime, origin="1970-01-01")  
+ptime = as.integer(arow[1][1])
+print(ptime)
+etime = as.POSIXct(ptime, origin="1970-01-01")
 print(etime)
 
 timediff_minutes = as.integer(difftime(Sys.time(), etime, units = "mins"))
 
 myprediction = arow[4]
 
-if (myprediction > 0.5 & timediff_minutes < 6) {  
-  print('buy')  
-} 
-
-if (myprediction < 0.5 & timediff_minutes < 6) {  
-  print('sell')  
+if (myprediction > 0.5 & timediff_minutes < 6) {
+  print('buy')
 }
 
-# Now I make use of the IBrokers package.  
-# Syntax to install it:  
-# install.packages("IBrokers", lib="rpackages", repos="http://cran.us.r-project.org")  
+if (myprediction < 0.5 & timediff_minutes < 6) {
+  print('sell')
+}
+
+# Now I make use of the IBrokers package.
+# Syntax to install it:
+# install.packages("IBrokers", lib="rpackages", repos="http://cran.us.r-project.org")
 # Once I install it, I see it in a folder named rpackages/
 
-# Next, tell this script where IBrokers resides:  
+# Next, tell this script where IBrokers resides:
 .libPaths("rpackages")
 
-# Now I can use IBrokers R Package:  
+# Now I can use IBrokers R Package:
 library(IBrokers)
 
-myport     = 7476  
+myport     = 7476
 myclientId = 2
 
-tws2 = twsConnect(clientId=myclientId, port=myport)  
+tws2 = twsConnect(clientId=myclientId, port=myport)
 Sys.sleep(2)
 
-# Order if position small:  
-myacct = reqAccountUpdates(tws2)  
-myposition = myacct[[2]][[1]]$portfolioValue$position  
-# myposition = 1  
-print(myposition)  
+# Order if position small:
+myacct = reqAccountUpdates(tws2)
+myposition = myacct[[2]][[1]]$portfolioValue$position
+# myposition = 1
+print(myposition)
 twsDisconnect(tws2)
 
 Sys.sleep(10)
 
 tws2 = twsConnect(clientId=myclientId, port=myport)
 
-mytkr     = twsFuture("ES","GLOBEX","201412")  
-Sys.sleep(2)  
-myorderid = as.integer(reqIds(tws2))  
-print(myorderid)  
-Sys.sleep(2)  
+mytkr     = twsFuture("ES","GLOBEX","201412")
+Sys.sleep(2)
+myorderid = as.integer(reqIds(tws2))
+print(myorderid)
+Sys.sleep(2)
 myorderid = as.integer(difftime(Sys.time(), "2014-10-30", units = "secs"))
 
-if (myposition == -possize & myprediction > 0.5 & timediff_minutes < 6) {  
-  print('Attempting BUY')  
-  IBrokers:::.placeOrder(tws2, mytkr, twsOrder(myorderid,"BUY", 2*possize, "MKT"))  
+if (myposition == -possize & myprediction > 0.5 & timediff_minutes < 6) {
+  print('Attempting BUY')
+  IBrokers:::.placeOrder(tws2, mytkr, twsOrder(myorderid,"BUY", 2*possize, "MKT"))
 }
 
-if (myposition == possize & myprediction < 0.5 & timediff_minutes < 6) {  
-  print('Attempting SELL')  
-  IBrokers:::.placeOrder(tws2, mytkr, twsOrder(myorderid,"SELL", 2*possize, "MKT"))  
+if (myposition == possize & myprediction < 0.5 & timediff_minutes < 6) {
+  print('Attempting SELL')
+  IBrokers:::.placeOrder(tws2, mytkr, twsOrder(myorderid,"SELL", 2*possize, "MKT"))
 }
 
-Sys.sleep(2)  
+Sys.sleep(2)
 twsDisconnect(tws2)
 
 

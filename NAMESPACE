@@ -3,7 +3,7 @@ exportPattern("^[[:alpha:]]+")
 import(zoo, xts)
 
 export(eWrapper_new)
-export(eWrapper_realtimebars)
+export(trade_wrapper)
 export(reqRealTimeBars)
 export(twsConnect,
        twsConnect2,             # experimental connection object
