@@ -6,6 +6,9 @@ tags: Interactive Brokers, API
 abstract: R functions for executing real time trading strategies Via the API of Interactive
   Brokers.  The package *IBrokers2* is derived from *IBrokers*, and is fully backward
   compatible with it.
+output:
+  md_document:
+    variant: markdown_github
 ---
 
 [![Build Status](https://travis-ci.org/algoquant/IBrokers2.svg?branch=master)](https://travis-ci.org/algoquant/IBrokers2)
