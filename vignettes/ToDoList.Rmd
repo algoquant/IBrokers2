@@ -1,0 +1,107 @@
+############
+### ToDo list for package IBrokers2: Executing Real Time Trading Strategies Via the API of Interactive Brokers
+
+### scripts for package building
+
+## Steps for installing package called my_package, containing Rcpp code:
+1. Create empty package directory with Rcpp::Rcpp.package.skeleton()
+2. In the R directory create a file called my_package.R and add the header:
+
+#' @useDynLib my_package
+#' @importFrom Rcpp evalCpp
+#' @exportPattern "^[[:alpha:]]+"
+NULL
+
+Add your R functions below the header.
+
+3. Clean and rebuild (in Build menu)
+
+
+## Build scripts:
+
+# Install package from source on local drive
+install.packages(pkgs="C:/Develop/R/IBrokers2", repos=NULL, type="source")
+# Install package from source on local drive using R CMD
+R CMD INSTALL C:\Develop\R\IBrokers2
+# Install package from github
+devtools::install_github(repo="algoquant/IBrokers2", force=TRUE)
+# build vignette package reference manual from *.Rd files
+system("R CMD Rd2pdf C:/Develop/R/IBrokers2")
+cd C:\Develop\R\IBrokers2\vignettes
+R CMD Rd2pdf C:\Develop\R\IBrokers2\
+
+
+
+### Comments and package analysis
+
+# List of numeric codes of commands stored as a named list
+IBrokers::.twsIncomingMSG
+
+
+### tasks to-do
+
++ [ ] In realtimeBars() copy bar data into the event wrapper environment
+http://r.789695.n4.nabble.com/variable-scope-with-ewrapper-in-IBrokers-td3675978.html
+
++ [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
+https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
+
++ [ ] Change trading frequency
+
++ [ ] Create sub-portfolios and place trades into sub-portfolios
+
++ [ ] Download messages and parse them with reqMktData(tws, equity1, CALLBACK=NULL, file=fn)
+http://r.789695.n4.nabble.com/Interactive-Brokers-td3668170.html
+
++ [ ] Answer the questions:
+https://stackoverflow.com/questions/39713543/message-management-using-ewrapper-and-twscallback-in-ibrokers
+https://stackoverflow.com/questions/27254131/ibrokers-queueing-up-an-order-using-r
+
++ [ ] Create new order type:
+https://stackoverflow.com/questions/46482300/r-ibrokers-interactive-brokers-api
+
++ [ ] Run reqExecutions():
+https://stackoverflow.com/questions/35559742/reqexecutions-ibrokers-package
+http://r.789695.n4.nabble.com/IBrokers-order-status-td4562387.html
+http://r.789695.n4.nabble.com/Confirm-orders-in-TWS-Interactive-Brokers-td3785506.html
+
++ [ ] Adapt from autotrade by Phillip Guerra: uses package reticulate with Python for Interactive Brokers
+https://www.pcppresentation.com/
+https://github.com/PhilGuerra/autotrade
+https://github.com/PhilGuerra/autotrade/commits?author=PhilGuerra
+Guerra autotrade RFinance Chicago 2018.pdf
+C:/Research/R/Tutorials/Guerra_automated_trading_with_r
+
+# Santosh Srinivas: Interactive Brokers with Python, R and package reticulate
+https://www.santoshsrinivas.com/amicable-interactive-data-analysis-using-pythoth-and-r-using-reticulate/
+
++ [ ] Adapt iBrokers code from:
+https://www.quantopian.com/posts/ib-api
+https://stackoverflow.com/questions/35559742/reqexecutions-ibrokers-package
+https://stackoverflow.com/questions/21442158/ibrokers-data-persistence
+http://r.789695.n4.nabble.com/Confirm-orders-in-TWS-Interactive-Brokers-td3785506.html
+
++ [ ] Add new order type to IBrokers:
+https://stackoverflow.com/questions/46482300/r-ibrokers-interactive-brokers-api
+
++ [ ] reply to / comment on:
+https://stackoverflow.com/questions/44582053/ibrokers-quantstrat-live-implementation
+
+
+
+### tasks finished
+
+
++ [x] Create IBrokers2 project directory in RStudio
+
++ [x] Pass the trading parameters buy_spread and sell_spread into the dots of realtimeBars()
+
++ [x] Adapt Interactive Brokers API script from: actually nothing there to adapt
+C:\Develop\R\IBrokers\Sherrington IBrokers scripts.pdf
+C:\Develop\R\IBrokers\Yadav IBrokers scripts.pdf
+
+
+
+
+### tasks deprecated
+

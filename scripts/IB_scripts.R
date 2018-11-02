@@ -18,7 +18,7 @@ library(IBrokers2)
 #                  query = 123)
 
 # Doesn't work
-# foo <- IBrokers2::reqExecutions(ib_connect)
+# foo <- IBrokers2::reqExecutions(twsconn=ib_connect, ExecutionFilter=twsExecutionFilter)
 # foo <- IBrokers2::reqOpenOrders(ib_connect)
 
 
@@ -26,22 +26,37 @@ library(IBrokers2)
 ####################################
 ### Scripts for running a simple trading strategy in a callback loop:
 
+# Define the contract for trading
 con_tract <- IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812")
 
-# source("C:/Develop/R/IBrokers/ibrokers_eWrapper.R")
+# The simple market-making strategy is defined as follows:
+#  Place limit buy order at previous bar Low price minus buy_spread,
+#  Place limit sell order at previous bar High price plus sell_spread.
+#
+# The strategy is defined inside the function realtimeBars() which
+# is part of an eWrapper.
+# The user can customize this strategy by modifying the trading
+# code in the function realtimeBars().
 
+# Open the file for storing the bar data
 data_dir <- "C:/Develop/data/ib_data"
-file_name <- file.path(data_dir, "ES_ohlc_live_11_01_18.csv")
+file_name <- file.path(data_dir, "ES_ohlc_live_11_02_18.csv")
 file_connect <- file(file_name, open="w")
 
+# Open the IB connection
 ib_connect <- IBrokers2::twsConnect(port=7497)
-IBrokers2::reqRealTimeBars(conn=ib_connect,
-                           Contract=con_tract, barSize="30", useRTH=FALSE,
-                           eventWrapper=IBrokers2::trade_wrapper(1),
-                           CALLBACK=twsCALLBACK,
-                           file=file_connect)
-IBrokers2::twsDisconnect(ib_connect)
 
+# Run the strategy:
+IBrokers2::reqRealTimeBars(conn=ib_connect, useRTH=FALSE,
+                          Contract=con_tract, barSize="10",
+                          eventWrapper=trade_wrapper(1),
+                          CALLBACK=twsCALLBACK,
+                          file=file_connect,
+                          buy_spread=0.75, sell_spread=0.75)
+
+
+# Close IB connection
+IBrokers2::twsDisconnect(ib_connect)
 close(file_connect)
 
 

@@ -11,7 +11,7 @@ trade_wrapper <- function (n = 1) {
   eW <- eWrapper_new(NULL)
   # eW <- IBrokers::eWrapper(NULL)
   eW$assign.Data("data", rep(list(structure(.xts(matrix(rep(NA_real_, 7), ncol = 7), 0), .Dimnames = list(NULL, c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")))), n))
-  eW$realtimeBars <- function(curMsg, msg, timestamp, file, ...) {
+  eW$realtimeBars <- function(curMsg, msg, timestamp, file, buy_spread=0.25, sell_spread=0.25, ...) {
     id <- as.numeric(msg[2])
     file <- file[[id]]
     data <- eW$get.Data("data")
@@ -50,13 +50,13 @@ trade_wrapper <- function (n = 1) {
     # Execute buy limit order
     buy_id <- as.numeric(IBrokers::reqIds(ib_connect))
     buy_order <- IBrokers::twsOrder(buy_id, orderType="LMT",
-                                    lmtPrice=(as.numeric(msg[6])-0.25), action="BUY", totalQuantity=1)
+                                    lmtPrice=(as.numeric(msg[6])-buy_spread), action="BUY", totalQuantity=1)
     IBrokers::placeOrder(ib_connect, con_tract, buy_order)
     # Execute sell limit order
     sell_id <- as.numeric(IBrokers::reqIds(ib_connect))
     # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
     sell_order <- IBrokers::twsOrder(sell_id, orderType="LMT",
-                                     lmtPrice=(as.numeric(msg[5])+0.25), action="SELL", totalQuantity=1)
+                                     lmtPrice=(as.numeric(msg[5])+sell_spread), action="SELL", totalQuantity=1)
     # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
     IBrokers::placeOrder(ib_connect, con_tract, sell_order)
     # Copy new trade orders
