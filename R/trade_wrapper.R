@@ -1,80 +1,3 @@
-
-trade_wrapper_old <- function(n_instr=1, ...) {
-  ew_env <- eWrapper_new(NULL)
-  # ew_env <- IBrokers::eWrapper(NULL)
-  ew_env$assign.Data("data", rep(list(structure(.xts(matrix(rep(NA_real_, 7), ncol = 7), 0), .Dimnames = list(NULL, c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")))), n_instr))
-  ew_env$assign.Data("count_er", 0)
-
-  # Unpack the dots containing the trading model parameters
-  ew_env$model_params <- list(...)
-  # If dots are empty then set default parameter values
-  if (NROW(ew_env$model_params) == 0) {
-    ew_env$model_params$buy_spread <- 0.25
-    ew_env$model_params$sell_spread <- 0.25
-  }  # end if
-
-  ew_env$realtimeBars <- function(curMsg, msg, timestamp, file, ...) {
-    id <- as.numeric(msg[2])
-    file <- file[[id]]
-    data <- ew_env$get.Data("data")
-    attr(data[[id]], "index") <- as.numeric(msg[3])
-    nrew_env <- NROW(data[[id]])
-    # write to file
-    cat(paste(msg[3], msg[4], msg[5], msg[6], msg[7], msg[8], msg[9], msg[10], sep = ","), "\n", file = file, append = TRUE)
-    # write to console
-    # ew_env$count_er <- ew_env$count_er + 1
-    ew_env$assign.Data("count_er", ew_env$get.Data("count_er")+1)
-    cat(paste0("count_er=", ew_env$get.Data("count_er"), "\tOpen=", msg[4], "\tHigh=", msg[5], "\tLow=", msg[6], "\tClose=", msg[7], "\tVolume=", msg[8]), "\n")
-    # cat(paste0("Open=", msg[4], "\tHigh=", msg[5], "\tLow=", msg[6], "\tClose=", msg[7], "\tVolume=", msg[8]), "\n")
-
-    ### Trade code start
-    # cat(paste0("Available Funds=", IBrokers::reqAccountUpdates(conn=ib_connect, acctCode="DI1207807")[[1]]$AvailableFunds[1]), "\n")
-    # if (rnorm(1) > 0) {
-    #   order_id <- IBrokers::reqIds(ib_connect)
-    #   ib_order <- IBrokers::twsOrder(order_id, orderType="MKT",
-    #                                  action="SELL", totalQuantity="1")
-    #   IBrokers::placeOrder(ib_connect, con_tract, ib_order)
-    # } else {
-    #   order_id <- IBrokers::reqIds(ib_connect)
-    #   ib_order <- IBrokers::twsOrder(order_id, orderType="MKT",
-    #                                  action="BUY", totalQuantity="1")
-    #   IBrokers::placeOrder(ib_connect, con_tract, ib_order)
-    # }  # end if
-    ### Trade code end
-
-    ### Trade code start
-    # Cancel previous trade orders
-    # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
-    buy_id <- as.numeric(ew_env$get.Data("buy_id"))
-    sell_id <- as.numeric(ew_env$get.Data("sell_id"))
-    if (buy_id>0) IBrokers::cancelOrder(ib_connect, buy_id)
-    if (sell_id>0) IBrokers::cancelOrder(ib_connect, sell_id)
-    # Execute buy limit order
-    buy_id <- as.numeric(IBrokers::reqIds(ib_connect))
-    buy_order <- IBrokers::twsOrder(buy_id, orderType="LMT",
-                                    lmtPrice=(as.numeric(msg[6])-ew_env$model_params$buy_spread), action="BUY", totalQuantity=1)
-    IBrokers::placeOrder(ib_connect, con_tract, buy_order)
-    # Execute sell limit order
-    sell_id <- as.numeric(IBrokers::reqIds(ib_connect))
-    # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
-    sell_order <- IBrokers::twsOrder(sell_id, orderType="LMT",
-                                     lmtPrice=(as.numeric(msg[5])+ew_env$model_params$sell_spread), action="SELL", totalQuantity=1)
-    # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
-    IBrokers::placeOrder(ib_connect, con_tract, sell_order)
-    # Copy new trade orders
-    # cat(paste0("buy_id=", buy_id, "\tsell_id=", sell_id), "\n")
-    ew_env$assign.Data("buy_id", buy_id)
-    ew_env$assign.Data("sell_id", sell_id)
-    ### Trade code end
-
-    data[[id]][nrew_env, 1:7] <- as.numeric(msg[4:10])
-    ew_env$assign.Data("data", data)
-    c(curMsg, msg)
-  }  # end ew_env$realtimeBars
-  return(ew_env)
-}  # end trade_wrapper_old
-
-
 # n_instr is the number of instruments in the data buffer
 trade_wrapper <- function(n_instr=1, ...) {
   # cat("Entering trade_wrapper", "\n")
@@ -86,16 +9,20 @@ trade_wrapper <- function(n_instr=1, ...) {
   # ew_env$assign_ <- function(x, value) assign(x, value, ew_env)
   # ew_env$remove_ <- function(x) remove(x, ew_env)
   # Initialize state variables in eWrapper environment
-  ew_env$assign.Data("count_er", 0)
-  # ew_env$count_er <- 0
+  # ew_env$assign.Data("count_er", 0)
+  ew_env$count_er <- 0
   # Define dimensions of data buffer for single instrument
-  ew_env$col_names <- c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")
-  ew_env$n_row <- 8*60*12; ew_env$n_col <- NROW(ew_env$col_names)
+  col_names <- c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")
+  # ew_env$assign.Data("col_names", col_names)
+  ew_env$col_names <- col_names
+  n_row <- 8*60*12; n_col <- NROW(col_names)
+  ew_env$n_row <- n_row
+  ew_env$n_col <- n_col
+  # ew_env$n_row <- 8*60*12; ew_env$n_col <- NROW(ew_env$col_names)
   # Create data buffer bar_data, as a list of xts series in eWrapper environment
-  ew_env$bar_data <- with(ew_env, rep(list(structure(.xts(matrix(rep(NA_real_, n_row*n_col), ncol=n_col), 1:n_row),
-                                                     .Dimnames=list(NULL, col_names))),
-                                      n_instr))
-
+  ew_env$bar_data <- rep(list(structure(.xts(matrix(rep(NA_real_, n_row*n_col), ncol=n_col), 1:n_row),
+                                        .Dimnames=list(NULL, col_names))),
+                         n_instr)
   ## Define trading model function inside the eWrapper environment
   # Unpack the dots containing the trading model parameters
   ew_env$model_params <- list(...)
@@ -109,15 +36,14 @@ trade_wrapper <- function(n_instr=1, ...) {
   ew_env$sell_id <- 0
 
   # The function model_fun is called from inside realtimeBars()
-  # cat("Defining model_fun", "\n")
   ew_env$model_fun <- function(new_bar) {
     # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
     # Cancel previous trade orders
-    # ew_env$count_er <- 3
-    # cat("model_fun: ", ew_env$get.Data("count_er"), "\n")
-    if (ew_env$get.Data("count_er") > 1) {
-      IBrokers2::cancelOrder(ib_connect, ew_env$get.Data("buy_id"))
-      IBrokers2::cancelOrder(ib_connect, ew_env$get.Data("sell_id"))
+    # cat("model_fun: ", "\n")
+    # cat("model_fun: ", ew_env$count_er, "\n")
+    if (ew_env$count_er > 1) {
+      IBrokers2::cancelOrder(ib_connect, ew_env$buy_id)
+      IBrokers2::cancelOrder(ib_connect, ew_env$sell_id)
     }  # end if
 
     # Execute buy limit order
@@ -134,43 +60,49 @@ trade_wrapper <- function(n_instr=1, ...) {
                                       lmtPrice=sell_price, action="SELL", totalQuantity=1)
     IBrokers2::placeOrder(ib_connect, con_tract, sell_order)
 
-    # cat("Buy order at: ", buy_price, "\tSell order at: ", sell_price, "\n")
+    ew_env$buy_id <<- buy_id
+    ew_env$sell_id <<- sell_id
 
-    # Copy new trade orders
-    ew_env$assign.Data("buy_id", buy_id)
-    ew_env$assign.Data("sell_id", sell_id)
-    # ew_env$buy_id <- buy_id
-    # ew_env$sell_id <- sell_id
+    cat("Buy order at: ", buy_price, "\tSell order at: ", sell_price, "\n")
+
     invisible(c(buy_order=buy_price, sell_order=sell_price))
   }  # end model_fun
+
 
   # realtimeBars() processes a new bar of data and runs the model_fun()
   # realtimeBars() is called by processMsg() in a callback loop inside twsCALLBACK()
   ew_env$realtimeBars <- function(curMsg, msg, timestamp, file, ...) {
+    # cat("realtimeBars: ", ew_env$count_er, "\n")
+    # ew_env$assign.Data("count_er", ew_env$get.Data("count_er")+1)
+    ew_env$count_er <<- ew_env$count_er + 1
     # Unwrap new bar of data in msg passed from processMsg()
-    ew_env$assign.Data("count_er", ew_env$get.Data("count_er")+1)
-    # ew_env$assign_("count_er", ew_env$get_("count_er")+1)
-    # ew_env$count_er <- ew_env$count_er + 1
-    # cat("realtimeBars: ", ew_env$get.Data("count_er"), "\n")
     new_bar <- as.numeric(msg)
-    names(new_bar)[4:(ew_env$n_col+3)] <- ew_env$col_names
-    # cat("realtimeBars col_names: ", ew_env$col_names, "\n")
-    # cat("realtimeBars new_bar: ", new_bar, "\n")
+    # cat("realtimeBars col_names: ", col_names, "\n")
+    # cat("realtimeBars n_col: ", n_col, "\n")
+    col_index <- 4:(ew_env$n_col+3)
+    names(new_bar)[col_index] <- ew_env$col_names
     instr_id <- new_bar[2]
+    # cat("realtimeBars new_bar: ", new_bar, "\n")
+    # cat("realtimeBars: ", ew_env$get.Data("count_er"), "\n")
     # Copy new bar of data into buffer
-    ew_env$bar_data[[instr_id]][ew_env$get.Data("count_er"), ] <- new_bar[4:(ew_env$n_col+3)]
-    # cat("realtimeBars bar_data: ", head(ew_env$bar_data[[instr_id]]), "\n")
+    ew_env$bar_data[[instr_id]][ew_env$count_er, ] <<- new_bar[col_index]
+    # cat("realtimeBars bar_data: ", ew_env$bar_data[[instr_id]][ew_env$count_er, ], "\n")
+    # if (ew_env$count_er > 1)
+    #   cat("realtimeBars bar_data: ", ew_env$bar_data[[instr_id]][ew_env$count_er-1, ], "\n")
+    # if (ew_env$count_er > 2)
+    #   cat("realtimeBars bar_data: ", ew_env$bar_data[[instr_id]][ew_env$count_er-2, ], "\n")
     # Write to file
     # file_name <- file[[instr_id]]
     # cat(paste(new_bar[3], new_bar[4], new_bar[5], new_bar[6], new_bar[7], new_bar[8], new_bar[9], new_bar[10], sep=","), "\n", file=file, append=TRUE)
     # Write to console
-    cat(paste0("count_er=", ew_env$get.Data("count_er")), paste0(ew_env$col_names, "=", new_bar[4:(ew_env$n_col+3)]), "\n")
+    cat(paste0("count_er=", ew_env$count_er), paste0(ew_env$col_names, "=", new_bar[col_index]), "\n")
     # cat(paste0("Open=", new_bar[4], "\tHigh=", new_bar[5], "\tLow=", new_bar[6], "\tClose=", new_bar[7], "\tVolume=", new_bar[8]), "\n")
     # Run the trading model
     ew_env$model_fun(new_bar)
     # Return values
     c(curMsg, msg)
-  }  # end ew_env$realtimeBars
+  }  # end realtimeBars
+
   return(ew_env)
 }  # end trade_wrapper
 

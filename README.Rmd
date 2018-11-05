@@ -15,6 +15,8 @@ output:
 
 The package *IBrokers2* is derived from, and is a superset of the package *IBrokers*. This means that all the *IBrokers* functions and variables are preserved exactly in *IBrokers2*, while some additional functions have been added.  The new functions mostly provide additional trade execution capabilities, for running systematic trading strategies in a callback loop.
 
+More information can be found in the document *real_time_trading.html* in the vignettes sub-directory.
+
 
 ### Installation and Loading
 
@@ -26,6 +28,4 @@ devtools::install_github(repo="algoquant/IBrokers2")
 library(IBrokers2)
 ```
 <br>
-
-More information can be found in the document *real_time_trading.html* in the vignettes sub-directory.
 
