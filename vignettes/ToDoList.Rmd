@@ -40,6 +40,18 @@ IBrokers::.twsIncomingMSG
 
 ### tasks to-do
 
++ [ ] Download real-time bars for several instruments using trade_wrapper() and eWrapper.RealTimeBars.CSV(), and compare the data
+
++ [ ] Rewrite trade_wrapper()
+Rename Wrapper_new() to create_ewrapper().
+Remove redundant accessor function calls.
+Define model function inside trade_wrapper() and pass model parameters into trade_wrapper() through the dots argument.
+
++ [ ] Create clone of twsCALLBACK(), adapt from:
+http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
+
++ [ ] Print to console status of the eWrapper data buffer
+
 + [ ] In realtimeBars() copy bar data into the event wrapper environment
 http://r.789695.n4.nabble.com/variable-scope-with-ewrapper-in-IBrokers-td3675978.html
 

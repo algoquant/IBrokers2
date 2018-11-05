@@ -1,46 +1,26 @@
-#' Create a wrapper environment and define the function realtimeBars() for
-#' running systematic trading strategies in a callback loop.
-#'
-#' @details The function \code{trade_wrapper()} is derived from
-#'   \code{IBrokers::eWrapper.RealTimeBars.CSV()}. It creates a wrapper
-#'   environment and defines the function realtimeBars() for running systematic
-#'   trading strategies in a callback loop.
-#'
-#' @export
-trade_wrapper <- function(n=1, ...) {
-  # Create eWrapper environment
-  ew_env <- create_ewrapper(NULL)
-  # Create state variables in eWrapper environment
+
+trade_wrapper_old <- function(n_instr=1, ...) {
+  ew_env <- eWrapper_new(NULL)
+  # ew_env <- IBrokers::eWrapper(NULL)
+  ew_env$assign.Data("data", rep(list(structure(.xts(matrix(rep(NA_real_, 7), ncol = 7), 0), .Dimnames = list(NULL, c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")))), n_instr))
   ew_env$assign.Data("count_er", 0)
-  ew_env$assign.Data("buy_id", 0)
-  ew_env$assign.Data("sell_id", 0)
-  # Create data buffer da_ta in eWrapper environment - da_ta is a list of xts series
-  ew_env$assign.Data("data", rep(list(structure(.xts(matrix(rep(NA_real_, 7), ncol=7), 0), .Dimnames=list(NULL, c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")))), n))
-  # Unpack the dots containing the trading model function and its parameters
-  dot_s <- list(...)
-  if (NROW(dot_s) == 0) {  # dots were empty so set default values
-    buy_spread <- 0.25
-    sell_spread <- 0.25
-    model_fun <- function(x) {
-      x <- 10
-    }  # end model_fun
-  } else {
-    model_fun <- dot_s$model_fun
-    ew_env$assign.Data("buy_spread", dot_s$buy_spread)
-    ew_env$assign.Data("sell_spread", dot_s$sell_spread)
+
+  # Unpack the dots containing the trading model parameters
+  ew_env$model_params <- list(...)
+  # If dots are empty then set default parameter values
+  if (NROW(ew_env$model_params) == 0) {
+    ew_env$model_params$buy_spread <- 0.25
+    ew_env$model_params$sell_spread <- 0.25
   }  # end if
 
-  # Define the model - realtimeBars() is called by processMsg() in a callback loop inside twsCALLBACK()
   ew_env$realtimeBars <- function(curMsg, msg, timestamp, file, ...) {
-    msg <- as.numeric(msg)
-
-    id <- msg[2]
+    id <- as.numeric(msg[2])
     file <- file[[id]]
     data <- ew_env$get.Data("data")
-    attr(data[[id]], "index") <- msg[3]
-    nr.data <- NROW(data[[id]])
+    attr(data[[id]], "index") <- as.numeric(msg[3])
+    nrew_env <- NROW(data[[id]])
     # write to file
-    cat(paste(msg[3], msg[4], msg[5], msg[6], msg[7], msg[8], msg[9], msg[10], sep=","), "\n", file=file, append=TRUE)
+    cat(paste(msg[3], msg[4], msg[5], msg[6], msg[7], msg[8], msg[9], msg[10], sep = ","), "\n", file = file, append = TRUE)
     # write to console
     # ew_env$count_er <- ew_env$count_er + 1
     ew_env$assign.Data("count_er", ew_env$get.Data("count_er")+1)
@@ -71,12 +51,14 @@ trade_wrapper <- function(n=1, ...) {
     if (sell_id>0) IBrokers::cancelOrder(ib_connect, sell_id)
     # Execute buy limit order
     buy_id <- as.numeric(IBrokers::reqIds(ib_connect))
-    buy_order <- IBrokers::twsOrder(buy_id, orderType="LMT", lmtPrice=(msg[6]-buy_spread), action="BUY", totalQuantity=1)
+    buy_order <- IBrokers::twsOrder(buy_id, orderType="LMT",
+                                    lmtPrice=(as.numeric(msg[6])-ew_env$model_params$buy_spread), action="BUY", totalQuantity=1)
     IBrokers::placeOrder(ib_connect, con_tract, buy_order)
     # Execute sell limit order
-    sell_id <- IBrokers::reqIds(ib_connect)
+    sell_id <- as.numeric(IBrokers::reqIds(ib_connect))
     # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
-    sell_order <- IBrokers::twsOrder(sell_id, orderType="LMT", lmtPrice=(msg[5]+sell_spread), action="SELL", totalQuantity=1)
+    sell_order <- IBrokers::twsOrder(sell_id, orderType="LMT",
+                                     lmtPrice=(as.numeric(msg[5])+ew_env$model_params$sell_spread), action="SELL", totalQuantity=1)
     # if (!IBrokers::isConnected(ib_connect)) {ib_connect <- IBrokers::twsConnect(port=7497) ; cat("reconnected")}
     IBrokers::placeOrder(ib_connect, con_tract, sell_order)
     # Copy new trade orders
@@ -85,12 +67,113 @@ trade_wrapper <- function(n=1, ...) {
     ew_env$assign.Data("sell_id", sell_id)
     ### Trade code end
 
-    data[[id]][nr.data, 1:7] <- msg[4:10]
+    data[[id]][nrew_env, 1:7] <- as.numeric(msg[4:10])
     ew_env$assign.Data("data", data)
     c(curMsg, msg)
   }  # end ew_env$realtimeBars
   return(ew_env)
+}  # end trade_wrapper_old
+
+
+# n_instr is the number of instruments in the data buffer
+trade_wrapper <- function(n_instr=1, ...) {
+  # cat("Entering trade_wrapper", "\n")
+  # Create eWrapper environment
+  ew_env <- create_ewrapper(NULL)
+  # ew_env <- new.env()
+  # Create eWrapper accessor functions
+  # ew_env$get_ <- function(x) get(x, ew_env)
+  # ew_env$assign_ <- function(x, value) assign(x, value, ew_env)
+  # ew_env$remove_ <- function(x) remove(x, ew_env)
+  # Initialize state variables in eWrapper environment
+  ew_env$assign.Data("count_er", 0)
+  # ew_env$count_er <- 0
+  # Define dimensions of data buffer for single instrument
+  ew_env$col_names <- c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")
+  ew_env$n_row <- 8*60*12; ew_env$n_col <- NROW(ew_env$col_names)
+  # Create data buffer bar_data, as a list of xts series in eWrapper environment
+  ew_env$bar_data <- with(ew_env, rep(list(structure(.xts(matrix(rep(NA_real_, n_row*n_col), ncol=n_col), 1:n_row),
+                                                     .Dimnames=list(NULL, col_names))),
+                                      n_instr))
+
+  ## Define trading model function inside the eWrapper environment
+  # Unpack the dots containing the trading model parameters
+  ew_env$model_params <- list(...)
+  # If dots are empty then set default parameter values
+  if (NROW(ew_env$model_params) == 0) {
+    ew_env$model_params$buy_spread <- 0.25
+    ew_env$model_params$sell_spread <- 0.25
+  }  # end if
+  # Initialize state variables in eWrapper environment
+  ew_env$buy_id <- 0
+  ew_env$sell_id <- 0
+
+  # The function model_fun is called from inside realtimeBars()
+  # cat("Defining model_fun", "\n")
+  ew_env$model_fun <- function(new_bar) {
+    # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
+    # Cancel previous trade orders
+    # ew_env$count_er <- 3
+    # cat("model_fun: ", ew_env$get.Data("count_er"), "\n")
+    if (ew_env$get.Data("count_er") > 1) {
+      IBrokers2::cancelOrder(ib_connect, ew_env$get.Data("buy_id"))
+      IBrokers2::cancelOrder(ib_connect, ew_env$get.Data("sell_id"))
+    }  # end if
+
+    # Execute buy limit order
+    buy_id <- IBrokers2::reqIds(ib_connect)
+    buy_price <- (new_bar["Low"] - ew_env$model_params$buy_spread)
+    buy_order <- IBrokers2::twsOrder(buy_id, orderType="LMT",
+                                     lmtPrice=buy_price, action="BUY", totalQuantity=1)
+    IBrokers2::placeOrder(ib_connect, con_tract, buy_order)
+
+    # Execute sell limit order
+    sell_id <- IBrokers2::reqIds(ib_connect)
+    sell_price <- (new_bar["High"] + ew_env$model_params$sell_spread)
+    sell_order <- IBrokers2::twsOrder(sell_id, orderType="LMT",
+                                      lmtPrice=sell_price, action="SELL", totalQuantity=1)
+    IBrokers2::placeOrder(ib_connect, con_tract, sell_order)
+
+    # cat("Buy order at: ", buy_price, "\tSell order at: ", sell_price, "\n")
+
+    # Copy new trade orders
+    ew_env$assign.Data("buy_id", buy_id)
+    ew_env$assign.Data("sell_id", sell_id)
+    # ew_env$buy_id <- buy_id
+    # ew_env$sell_id <- sell_id
+    invisible(c(buy_order=buy_price, sell_order=sell_price))
+  }  # end model_fun
+
+  # realtimeBars() processes a new bar of data and runs the model_fun()
+  # realtimeBars() is called by processMsg() in a callback loop inside twsCALLBACK()
+  ew_env$realtimeBars <- function(curMsg, msg, timestamp, file, ...) {
+    # Unwrap new bar of data in msg passed from processMsg()
+    ew_env$assign.Data("count_er", ew_env$get.Data("count_er")+1)
+    # ew_env$assign_("count_er", ew_env$get_("count_er")+1)
+    # ew_env$count_er <- ew_env$count_er + 1
+    # cat("realtimeBars: ", ew_env$get.Data("count_er"), "\n")
+    new_bar <- as.numeric(msg)
+    names(new_bar)[4:(ew_env$n_col+3)] <- ew_env$col_names
+    # cat("realtimeBars col_names: ", ew_env$col_names, "\n")
+    # cat("realtimeBars new_bar: ", new_bar, "\n")
+    instr_id <- new_bar[2]
+    # Copy new bar of data into buffer
+    ew_env$bar_data[[instr_id]][ew_env$get.Data("count_er"), ] <- new_bar[4:(ew_env$n_col+3)]
+    # cat("realtimeBars bar_data: ", head(ew_env$bar_data[[instr_id]]), "\n")
+    # Write to file
+    # file_name <- file[[instr_id]]
+    # cat(paste(new_bar[3], new_bar[4], new_bar[5], new_bar[6], new_bar[7], new_bar[8], new_bar[9], new_bar[10], sep=","), "\n", file=file, append=TRUE)
+    # Write to console
+    cat(paste0("count_er=", ew_env$get.Data("count_er")), paste0(ew_env$col_names, "=", new_bar[4:(ew_env$n_col+3)]), "\n")
+    # cat(paste0("Open=", new_bar[4], "\tHigh=", new_bar[5], "\tLow=", new_bar[6], "\tClose=", new_bar[7], "\tVolume=", new_bar[8]), "\n")
+    # Run the trading model
+    ew_env$model_fun(new_bar)
+    # Return values
+    c(curMsg, msg)
+  }  # end ew_env$realtimeBars
+  return(ew_env)
 }  # end trade_wrapper
+
 
 
 
@@ -284,22 +367,22 @@ create_ewrapper <- function(debug=FALSE, errfile=stderr()) {
     }
   }
   ew_env <- list(.Data=.Data, get.Data=get.Data, assign.Data=assign.Data,
-             remove.Data=remove.Data, tickPrice=tickPrice, tickSize=tickSize,
-             tickOptionComputation=tickOptionComputation, tickGeneric=tickGeneric,
-             tickString=tickString, tickEFP=tickEFP, orderStatus=orderStatus,
-             errorMessage=errorMessage, openOrder=openOrder, openOrderEnd=openOrderEnd,
-             updateAccountValue=updateAccountValue, updatePortfolio=updatePortfolio,
-             updateAccountTime=updateAccountTime, accountDownloadEnd=accountDownloadEnd,
-             nextValidId=nextValidId, contractDetails=contractDetails,
-             bondContractDetails=bondContractDetails, contractDetailsEnd=contractDetailsEnd,
-             execDetails=execDetails, execDetailsEnd=execDetailsEnd,
-             updateMktDepth=updateMktDepth, updateMktDepthL2=updateMktDepthL2,
-             updateNewsBulletin=updateNewsBulletin, managedAccounts=managedAccounts,
-             receiveFA=receiveFA, historicalData=historicalData,
-             scannerParameters=scannerParameters, scannerData=scannerData,
-             scannerDataEnd=scannerDataEnd, realtimeBars=realtimeBars,
-             currentTime=currentTime, fundamentalData=fundamentalData,
-             deltaNeutralValidation=deltaNeutralValidation, tickSnapshotEnd=tickSnapshotEnd)
+                 remove.Data=remove.Data, tickPrice=tickPrice, tickSize=tickSize,
+                 tickOptionComputation=tickOptionComputation, tickGeneric=tickGeneric,
+                 tickString=tickString, tickEFP=tickEFP, orderStatus=orderStatus,
+                 errorMessage=errorMessage, openOrder=openOrder, openOrderEnd=openOrderEnd,
+                 updateAccountValue=updateAccountValue, updatePortfolio=updatePortfolio,
+                 updateAccountTime=updateAccountTime, accountDownloadEnd=accountDownloadEnd,
+                 nextValidId=nextValidId, contractDetails=contractDetails,
+                 bondContractDetails=bondContractDetails, contractDetailsEnd=contractDetailsEnd,
+                 execDetails=execDetails, execDetailsEnd=execDetailsEnd,
+                 updateMktDepth=updateMktDepth, updateMktDepthL2=updateMktDepthL2,
+                 updateNewsBulletin=updateNewsBulletin, managedAccounts=managedAccounts,
+                 receiveFA=receiveFA, historicalData=historicalData,
+                 scannerParameters=scannerParameters, scannerData=scannerData,
+                 scannerDataEnd=scannerDataEnd, realtimeBars=realtimeBars,
+                 currentTime=currentTime, fundamentalData=fundamentalData,
+                 deltaNeutralValidation=deltaNeutralValidation, tickSnapshotEnd=tickSnapshotEnd)
   class(ew_env) <- "eWrapper"
   invisible(ew_env)
 }  # end create_ewrapper

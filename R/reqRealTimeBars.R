@@ -1,8 +1,7 @@
 .reqRealTimeBars <- function(conn, Contract,
           whatToShow="TRADES",
           barSize="5",useRTH=TRUE,
-          tickerId = "1")
-{
+          tickerId = "1") {
   if(!is.twsConnection(conn))
     stop("tws connection object required")
   if(is.twsContract(Contract))
@@ -44,18 +43,15 @@
 }
 
 #' @export
-reqRealTimeBars <-
-function (conn, Contract,
-          whatToShow="TRADES",
-          barSize="5",useRTH=TRUE,
-          playback = 1,
-          tickerId = "1",
-          file = "",
-          verbose=TRUE,
-          eventWrapper=eWrapper(),
-          CALLBACK=twsCALLBACK,
-          ...)
-{
+reqRealTimeBars <- function(conn, Contract,
+                             whatToShow="TRADES",
+                             barSize="5",useRTH=TRUE,
+                             playback = 1,
+                             tickerId = "1",
+                             file = "",
+                             verbose=TRUE,
+                             eventWrapper=eWrapper(),
+                             CALLBACK=twsCALLBACK, ...) {
     if(!is.twsPlayback(conn)) {
       tickerId <- .reqRealTimeBars(conn, Contract, whatToShow, barSize, useRTH, tickerId)
     }
@@ -107,17 +103,17 @@ function (conn, Contract,
       file <- rep(file, length(Contract))
     CALLBACK(conn, eWrapper=eventWrapper, timestamp=timeStamp, file=file,
              playback=playback, ...)
-}
+}  # end reqRealTimeBars
 
 `cancelRealTimeBars` <- function(conn,tickerId) {
-      if(!is.twsConnection(conn))
-        stop("twsConnection object required")
+  if(!is.twsConnection(conn))
+    stop("twsConnection object required")
 
-      con <- conn[[1]]
+  con <- conn[[1]]
 
-      for(i in 1:length(tickerId)) {
-        writeBin(.twsOutgoingMSG$CANCEL_REAL_TIME_BARS,con)
-        writeBin('1',con)
-        writeBin(tickerId[i],con)
-      }
-    }
+  for(i in 1:length(tickerId)) {
+    writeBin(.twsOutgoingMSG$CANCEL_REAL_TIME_BARS,con)
+    writeBin('1',con)
+    writeBin(tickerId[i],con)
+  }
+}

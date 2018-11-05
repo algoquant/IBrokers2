@@ -20,7 +20,8 @@ The package *IBrokers2* is derived from, and is a superset of the package *IBrok
 
 Install package *IBrokers2* from github:  
 ```{r eval=FALSE}
-install.packages("devtools")
+if (!("package:devtools" %in% search() || require("devtools", quietly=TRUE)))
+    install.packages("devtools")
 devtools::install_github(repo="algoquant/IBrokers2")
 library(IBrokers2)
 ```

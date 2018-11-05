@@ -13,8 +13,8 @@ twsDEBUG <- function(twsCon, eWrapper, timestamp, file, playback=1, ...)
 #  reqMktData(tws, twsSTK("IBM"), event=eWrapper(symbols=c("AAPL","IBM")))
 #  close(tws); close(CON2)
 #  uncomment the elements of twsCALLBACK as appropriate
-twsCALLBACK <- function(twsCon, eWrapper, timestamp, file, playback=1, ...)
-{
+#' @export
+twsCALLBACK <- function(twsCon, eWrapper, timestamp, file, playback=1, ...) {
   if(missing(eWrapper))
     eWrapper <- eWrapper()
   con <- twsCon[[1]]
@@ -42,26 +42,32 @@ twsCALLBACK <- function(twsCon, eWrapper, timestamp, file, playback=1, ...)
         if(curMsg == .twsIncomingMSG$REAL_TIME_BARS) Sys.sleep(5 * playback)
       }
     }
-  } 
-  else { 
-    #dataCON <- get("DATACON", .GlobalEnv)[[1]]
-    tryCatch(
-    while(isConnected(twsCon)) {
-      if( !socketSelect(list(con), FALSE, 0.25))
-        next
-      curMsg <- readBin(con, "character", 1L)
-      if(!is.null(timestamp)) {
-        processMsg(curMsg, con, eWrapper, format(Sys.time(), timestamp), file, twsCon, ...)
-      } else {
-        processMsg(curMsg, con, eWrapper, timestamp, file, twsCon, ...)
-      }
-    }, error=function(e) { close(twsCon); stop("IB connection error. Connection closed", call.=FALSE) }
-    )
   }
-}
+  else {
+    #dataCON <- get("DATACON", .GlobalEnv)[[1]]
+    # This is the code that runs in live trading
+    tryCatch(
+      # Callback loop
+      while(isConnected(twsCon)) {
+        if (!socketSelect(list(con), FALSE, 0.25))
+          next
+        curMsg <- readBin(con, "character", 1L)
+        # Process the message
+        if (!is.null(timestamp)) {
+          processMsg(curMsg, con, eWrapper, format(Sys.time(), timestamp), file, twsCon, ...)
+        } else {
+          processMsg(curMsg, con, eWrapper, timestamp, file, twsCon, ...)
+        }
+      },  # end while
+      # error handler
+      error=function(e) { close(twsCon); stop("IB connection error. Connection closed", call.=FALSE) }
+    )  # end tryCatch
+  }  # end if
+}  # end twsCALLBACK
 
-processMsg <- function(curMsg, con, eWrapper, timestamp, file, twsconn, ...)
-{
+
+#' @export
+processMsg <- function(curMsg, con, eWrapper, timestamp, file, twsconn, ...) {
   if(curMsg == .twsIncomingMSG$TICK_PRICE) {
     msg <- readBin(con, "character", 6)
     eWrapper$tickPrice(curMsg, msg, timestamp, file, ...)
@@ -147,7 +153,7 @@ processMsg <- function(curMsg, con, eWrapper, timestamp, file, twsconn, ...)
     eWrapper$bondContractDetails(curMsg, msg, timestamp, file, ...)
   } else
   if(curMsg == .twsIncomingMSG$SCANNER_PARAMETERS) {
-    version <- readBin(con, character(), 1L) 
+    version <- readBin(con, character(), 1L)
     msg <- readBin(con, raw(), 1e6L)
     eWrapper$scannerParameters(curMsg, msg, timestamp, file, ...)
   } else
@@ -238,4 +244,4 @@ processMsg <- function(curMsg, con, eWrapper, timestamp, file, twsconn, ...)
     warning(paste("Unknown incoming message: ",curMsg,". Please reset connection",sep=""), call.=FALSE)
   }
   # end of messages
-}
+}  # end processMsg

@@ -26,6 +26,10 @@ library(IBrokers2)
 ####################################
 ### Scripts for running a simple trading strategy in a callback loop:
 
+# Load the trading function written as an eWrapper:
+source("C:/Develop/R/IBrokers2/R/trade_wrapper.R")
+
+
 # Define the contract for trading
 con_tract <- IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812")
 
@@ -38,21 +42,28 @@ con_tract <- IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812")
 # The user can customize this strategy by modifying the trading
 # code in the function realtimeBars().
 
+# Define trading model function
+
+model_fun <- function(x) {
+  x <- 10
+}  # end model_fun
+
+
 # Open the file for storing the bar data
 data_dir <- "C:/Develop/data/ib_data"
-file_name <- file.path(data_dir, "ES_ohlc_live_11_02_18.csv")
+file_name <- file.path(data_dir, paste0("ES_ohlc_live_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv"))
 file_connect <- file(file_name, open="w")
 
 # Open the IB connection
 ib_connect <- IBrokers2::twsConnect(port=7497)
 
-# Run the strategy:
+# Run the trading model (strategy):
 IBrokers2::reqRealTimeBars(conn=ib_connect, useRTH=FALSE,
-                          Contract=con_tract, barSize="10",
-                          eventWrapper=trade_wrapper(1),
-                          CALLBACK=twsCALLBACK,
-                          file=file_connect,
-                          buy_spread=0.75, sell_spread=0.75)
+                           Contract=con_tract, barSize="10",
+                           eventWrapper=trade_wrapper(n_instr=1,
+                                                      buy_spread=1.75, sell_spread=1.75),
+                           CALLBACK=twsCALLBACK,
+                           file=file_connect)
 
 
 # Close IB connection
