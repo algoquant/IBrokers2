@@ -74,6 +74,16 @@ close(file_connect)
 # IBrokers2::reqOpenOrders(ib_connect)
 
 
+# Read the data from file
+file_name <- "C:/Develop/data/ib_data/ES_ohlc_live11_02_2018_11_53.csv"
+price_s <- data.table::setDF(data.table::fread(file_name, sep=","))
+price_s <- xts::xts(price_s[, 2:6], as.POSIXct(price_s[, 1], origin="1970-01-01"))
+colnames(price_s) <- c("Open", "High", "Low", "Close", "Volume")
+# Plot dygraph
+library(dygraphs)
+dygraphs::dygraph(price_s[, 1:4], main="OHLC prices") %>% dyCandlestick()
+
+
 
 
 ####################################
@@ -193,10 +203,11 @@ reqRealTimeBars(conn=raw_connect,
                 eventWrapper=eWrapper.RealTimeBars.CSV(1),
                 file=file_connect)
 
-# close file for bar data
+# Close file for bar data
 close(file_connect)
-# close file with raw data
+# Close file with raw data
 twsDisconnect(raw_connect)
+
 
 
 

@@ -12,17 +12,21 @@ trade_wrapper <- function(n_instr=1, ...) {
   # ew_env$assign.Data("count_er", 0)
   ew_env$count_er <- 0
   # Define dimensions of data buffer for single instrument
-  col_names <- c("Open", "High", "Low", "Close", "Volume", "WAP", "Count")
+  col_names <- c("Time", "Open", "High", "Low", "Close", "Volume", "WAP", "Count")
   # ew_env$assign.Data("col_names", col_names)
   ew_env$col_names <- col_names
   n_row <- 8*60*12; n_col <- NROW(col_names)
   ew_env$n_row <- n_row
   ew_env$n_col <- n_col
   # ew_env$n_row <- 8*60*12; ew_env$n_col <- NROW(ew_env$col_names)
-  # Create data buffer bar_data, as a list of xts series in eWrapper environment
-  ew_env$bar_data <- rep(list(structure(.xts(matrix(rep(NA_real_, n_row*n_col), ncol=n_col), 1:n_row),
-                                        .Dimnames=list(NULL, col_names))),
-                         n_instr)
+  # Create data buffer bar_data, as a list of matrices in the eWrapper environment
+  ew_env$bar_data <- rep(list(matrix(rep(NA_real_, n_row*n_col), ncol=n_col)), n_instr)
+  # Create data buffer bar_data, as a list of data frames in the eWrapper environment
+  # ew_env$bar_data <- rep(list(as.data.frame(matrix(rep(NA_real_, n_row*n_col), ncol=n_col))), n_instr)
+  # Create data buffer bar_data, as a list of xts series in the eWrapper environment
+  # ew_env$bar_data <- rep(list(structure(.xts(matrix(rep(NA_real_, n_row*n_col), ncol=n_col), 1:n_row),
+  #                                       .Dimnames=list(NULL, col_names))),
+  #                        n_instr)
   ## Define trading model function inside the eWrapper environment
   # Unpack the dots containing the trading model parameters
   ew_env$model_params <- list(...)
@@ -32,6 +36,7 @@ trade_wrapper <- function(n_instr=1, ...) {
     ew_env$model_params$sell_spread <- 0.25
   }  # end if
   # Initialize state variables in eWrapper environment
+  ew_env$n_instr <- n_instr
   ew_env$buy_id <- 0
   ew_env$sell_id <- 0
 
@@ -79,7 +84,7 @@ trade_wrapper <- function(n_instr=1, ...) {
     new_bar <- as.numeric(msg)
     # cat("realtimeBars col_names: ", col_names, "\n")
     # cat("realtimeBars n_col: ", n_col, "\n")
-    col_index <- 4:(ew_env$n_col+3)
+    col_index <- 3:(ew_env$n_col+2)
     names(new_bar)[col_index] <- ew_env$col_names
     instr_id <- new_bar[2]
     # cat("realtimeBars new_bar: ", new_bar, "\n")
@@ -92,10 +97,17 @@ trade_wrapper <- function(n_instr=1, ...) {
     # if (ew_env$count_er > 2)
     #   cat("realtimeBars bar_data: ", ew_env$bar_data[[instr_id]][ew_env$count_er-2, ], "\n")
     # Write to file
-    # file_name <- file[[instr_id]]
-    # cat(paste(new_bar[3], new_bar[4], new_bar[5], new_bar[6], new_bar[7], new_bar[8], new_bar[9], new_bar[10], sep=","), "\n", file=file, append=TRUE)
+    file_name <- file[[instr_id]]
+    cat(paste(ew_env$bar_data[[instr_id]][ew_env$count_er, ], collapse=","), "\n", file=file_name, append=TRUE)
+    # Write to file every 10 counts
+    # if ((ew_env$count_er %% 10) == 0) {
+    #   for (instr_id in 1:(ew_env$n_instr)) {
+    #     data.table::fwrite(ew_env$bar_data[[ew_env$instr_id]], file=file[[ew_env$instr_id]])
+    #   }  # end for
+    # }  # end if
     # Write to console
     cat(paste0("count_er=", ew_env$count_er), paste0(ew_env$col_names, "=", new_bar[col_index]), "\n")
+    # cat("Number of rows of data for instrument ", instr_id, " is = ", NROW(ew_env$bar_data[[ew_env$instr_id]]), "\n")
     # cat(paste0("Open=", new_bar[4], "\tHigh=", new_bar[5], "\tLow=", new_bar[6], "\tClose=", new_bar[7], "\tVolume=", new_bar[8]), "\n")
     # Run the trading model
     ew_env$model_fun(new_bar)
