@@ -30,8 +30,8 @@ library(IBrokers2)
 source("C:/Develop/R/IBrokers2/R/trade_wrapper.R")
 
 
-# Define the contract for trading
-con_tract <- IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812")
+# Define named list with contracts for trading
+con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"))
 
 # The simple market-making strategy is defined as follows:
 #  Place limit buy order at previous bar Low price minus buy_spread,
@@ -49,26 +49,27 @@ model_fun <- function(x) {
 }  # end model_fun
 
 
-# Open the file for storing the bar data
+# Open the files for storing the bar data
 data_dir <- "C:/Develop/data/ib_data"
-file_name <- file.path(data_dir, paste0("ES_ohlc_live_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv"))
-file_connect <- file(file_name, open="w")
+file_names <- file.path(data_dir, paste0(names(con_tracts), "_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv"))
+file_connects <- lapply(file_names, function(file_name) file(file_name, open="w"))
 
 # Open the IB connection
 ib_connect <- IBrokers2::twsConnect(port=7497)
 
 # Run the trading model (strategy):
 IBrokers2::reqRealTimeBars(conn=ib_connect, useRTH=FALSE,
-                           Contract=con_tract, barSize="10",
-                           eventWrapper=trade_wrapper(n_instr=1,
+                           Contract=con_tracts,
+                           eventWrapper=trade_wrapper(name_s=names(con_tracts), file_connects=file_connects,
                                                       buy_spread=1.75, sell_spread=1.75),
                            CALLBACK=twsCALLBACK,
-                           file=file_connect)
-
+                           file=file_connects)
 
 # Close IB connection
 IBrokers2::twsDisconnect(ib_connect)
-close(file_connect)
+
+# Close data files
+for (file_connect in file_connects) close(file_connect)
 
 
 # IBrokers2::reqOpenOrders(ib_connect)
@@ -84,10 +85,49 @@ library(dygraphs)
 dygraphs::dygraph(price_s[, 1:4], main="OHLC prices") %>% dyCandlestick()
 
 
+####################################
+### Download market data for two contracts simultaneously
+### Interactive Brokers using package IBrokers.
+
+
+con_tracts <- list(es=IBrokers::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"),
+                  tsy=IBrokers::twsFuture(symbol="ZN",exch="ECBOT", expiry="201812"))
+
+# Open the file for storing the bar data
+data_dir <- "C:/Develop/data/ib_data"
+file_name <- file.path(data_dir, paste0("ES_ohlc_live_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv"))
+file_connects <- file(file_name, open="w")
+# Open the IB connection
+ib_connect <- IBrokers2::twsConnect(port=7497)
+
+IBrokers::reqRealTimeBars(conn=ib_connect,
+                          Contract=con_tracts,
+                          barSize="1", useRTH=FALSE,
+                          eventWrapper=eWrapper.RealTimeBars.CSV(NROW(con_tracts)),
+                          file=file_connects)
+
+# Close IB connection
+IBrokers2::twsDisconnect(ib_connect)
+close(file_connects)
+
+library(data.table)
+price_s <- data.table::fread(file_name)
+price_s <- xts::xts(price_s[, paste0("V", 2:6)],
+                    as.POSIXct.numeric(as.numeric(price_s[, V1]), tz="America/New_York", origin="1970-01-01"))
+colnames(price_s) <- c("Open", "High", "Low", "Close", "Volume")
+# Plot OHLC data in x11 window
+x11()
+chart_Series(x=price_s, TA="add_Vo()",
+             name="S&P500 ESZ8 futures")
+# Plot dygraph
+library(dygraphs)
+dygraphs::dygraph(price_s[, 1:4], main="S&P500 ESZ8 futures") %>%
+  dyCandlestick()
+
 
 
 ####################################
-### Scripts for downloading market data from
+### Download market data from
 ### Interactive Brokers using package IBrokers.
 
 # devtools::install_github(repo="joshuaulrich/IBrokers")

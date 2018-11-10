@@ -40,11 +40,25 @@ IBrokers::.twsIncomingMSG
 
 ### tasks to-do
 
-+ [ ] Change the trading frequency - realtimeBars query in IB API is fixed to 5 seconds
++ [x] Download data for two contracts simultaneously
+
++ [x] Change the trading frequency - realtimeBars query in IB API is fixed to 5 seconds
+
++ [x] In realtimeBars() add to col_index the instrument ID column
+
++ [x] Pass into IBrokers2::reqRealTimeBars() a named list of contracts called con_tracts (even for a single contract)
+
++ [x] In trade_wrapper(), pass a vector of contract (instrument) names called name_s, instead of the integer n_instr
+Add column names to bar_data.
+Add argument file_connects, and write the column names as headers to data files.
+Remove the dots argument of trade_wrapper().
 
 + [ ] Print to console status of the eWrapper data buffer
 
-+ [ ] Create clone of twsCALLBACK(), adapt from:
++ [ ] Create clone of reqRealTimeBars() called trade_realtime()
+
++ [ ] Create clone of twsCALLBACK() called call_back(), 
+Adapt from:
 http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
 
 + [ ] Load into buffer the state variables: size of open orders, positions, cumulative PnL
@@ -63,7 +77,7 @@ function(twsconn) {
 + [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
 https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
 
-+ [ ] Download real-time bars for several instruments using trade_wrapper() and eWrapper.RealTimeBars.CSV(), and compare the data
++ [x] Download real-time bars for multiple instruments using reqRealTimeBars() and eWrapper.RealTimeBars.CSV(), and compare the data
 
 + [ ] Every 10 counts, save all the bar_data, instead of every row, or save only 10 rows of bar_data at a time to a file, instead of every row. 
 
