@@ -2,7 +2,7 @@ exportPattern("^[[:alpha:]]+")
 # useDynLib(IBrokers2)
 import(zoo, xts)
 
-export(eWrapper_new)
+export(create_ewrapper)
 export(trade_wrapper)
 export(reqRealTimeBars)
 export(twsConnect,

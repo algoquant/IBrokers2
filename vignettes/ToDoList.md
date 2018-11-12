@@ -40,6 +40,17 @@ IBrokers::.twsIncomingMSG
 
 ### tasks to-do
 
++ [ ] Pass con_tracts as an argument into model_fun()
+
++ [ ] Add sounds when trades are placed
+https://stackoverflow.com/questions/3365657/is-there-a-way-to-make-r-beep-play-a-sound-at-the-end-of-a-script
+https://shirinsplayground.netlify.com/2018/06/text_to_speech_r/
+https://sourceforge.net/projects/espeak/files/espeak/
+http://code.markedmondson.me/googleLanguageR/articles/text-to-speech.html
+https://github.com/seankross/ari
+cd C:\Program Files (x86)\espeak\command_line
+espeak.exe -v english-us -s 100 "Buy"
+
 + [x] Download data for two contracts simultaneously
 
 + [x] Change the trading frequency - realtimeBars query in IB API is fixed to 5 seconds

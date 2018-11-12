@@ -56,7 +56,6 @@ trade_wrapper <- function(name_s=NULL, buy_spread=0.25, sell_spread=0.25, file_c
   ew_env$model_fun <- function(new_bar) {
     # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
     # Cancel previous trade orders
-    # cat("model_fun: ", "\n")
     # cat("model_fun: ", ew_env$count_er, "\n")
     if (ew_env$count_er > 1) {
       IBrokers2::cancelOrder(ib_connect, ew_env$buy_id)
@@ -68,14 +67,14 @@ trade_wrapper <- function(name_s=NULL, buy_spread=0.25, sell_spread=0.25, file_c
     buy_price <- (new_bar["Low"] - ew_env$model_params$buy_spread)
     buy_order <- IBrokers2::twsOrder(buy_id, orderType="LMT",
                                      lmtPrice=buy_price, action="BUY", totalQuantity=1)
-    IBrokers2::placeOrder(ib_connect, con_tract, buy_order)
+    IBrokers2::placeOrder(ib_connect, con_tracts[[1]], buy_order)
 
     # Execute sell limit order
     sell_id <- IBrokers2::reqIds(ib_connect)
     sell_price <- (new_bar["High"] + ew_env$model_params$sell_spread)
     sell_order <- IBrokers2::twsOrder(sell_id, orderType="LMT",
                                       lmtPrice=sell_price, action="SELL", totalQuantity=1)
-    IBrokers2::placeOrder(ib_connect, con_tract, sell_order)
+    IBrokers2::placeOrder(ib_connect, con_tracts[[1]], sell_order)
 
     ew_env$buy_id <<- buy_id
     ew_env$sell_id <<- sell_id
@@ -97,7 +96,7 @@ trade_wrapper <- function(name_s=NULL, buy_spread=0.25, sell_spread=0.25, file_c
     # cat("realtimeBars col_names: ", col_names, "\n")
     # cat("realtimeBars n_col: ", n_col, "\n")
     col_index <- (3:(ew_env$n_col+2))
-    # names(new_bar)[col_index] <- ew_env$col_names
+    names(new_bar)[col_index] <- ew_env$col_names
     instr_id <- new_bar[2]
     # cat("realtimeBars new_bar: ", new_bar, "\n")
     # cat("realtimeBars: ", ew_env$get.Data("count_er"), "\n")
