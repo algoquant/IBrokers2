@@ -40,7 +40,10 @@ IBrokers::.twsIncomingMSG
 
 ### tasks to-do
 
-+ [ ] Pass con_tracts as an argument into model_fun()
++ [ ] In realtimeBars() calculate the trailing volatilities
+
++ [ ] Pass con_tracts and limit_prices arguments into trade_wrapper(), and pass contract_id argument into model_fun()
+Trade only those contracts which have non-NA limit_prices.
 
 + [ ] Add sounds when trades are placed
 https://stackoverflow.com/questions/3365657/is-there-a-way-to-make-r-beep-play-a-sound-at-the-end-of-a-script

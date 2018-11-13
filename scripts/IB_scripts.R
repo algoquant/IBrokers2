@@ -30,8 +30,16 @@ library(IBrokers2)
 source("C:/Develop/R/IBrokers2/R/trade_wrapper.R")
 
 
-# Define named list with contracts for trading
+# Define named lists for trading one contract
 con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"))
+limit_prices <- list(ES=c(buy_spread=1.75, sell_spread=1.75))
+
+# Define named lists for trading one contract and saving the others
+con_tracts <- list(ES=IBrokers::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"),
+                   ZN=IBrokers::twsFuture(symbol="ZN", exch="ECBOT", expiry="201812"))
+limit_prices <- list(ES=c(buy_spread=1.75, sell_spread=1.75),
+                     ZN=NA)
+
 
 # The simple market-making strategy is defined as follows:
 #  Place limit buy order at previous bar Low price minus buy_spread,
@@ -60,8 +68,10 @@ ib_connect <- IBrokers2::twsConnect(port=7497)
 # Run the trading model (strategy):
 IBrokers2::reqRealTimeBars(conn=ib_connect, useRTH=FALSE,
                            Contract=con_tracts,
-                           eventWrapper=trade_wrapper(name_s=names(con_tracts), file_connects=file_connects,
-                                                      buy_spread=1.75, sell_spread=1.75),
+                           eventWrapper=trade_wrapper(con_tracts=con_tracts,
+                                                      limit_prices=limit_prices,
+                                                      file_connects=file_connects,
+                                                      lamb_da=0.5),
                            CALLBACK=twsCALLBACK,
                            file=file_connects)
 
