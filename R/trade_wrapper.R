@@ -111,11 +111,11 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
     names(new_bar)[col_index] <- e_wrapper$col_names
     contract_id <- new_bar[2]
     # cat("realtimeBars count_er: ", e_wrapper$count_er, "\n")
-    # e_wrapper$as_sign("count_er", e_wrapper$get.Data("count_er")+1)
+    # e_wrapper$as_sign("count_er", e_wrapper$ge_t("count_er")+1)
     count_er <- e_wrapper$count_er[contract_id] + 1
     e_wrapper$count_er[contract_id] <<- count_er
     # cat("realtimeBars new_bar: ", new_bar, "\n")
-    # cat("realtimeBars: ", e_wrapper$get.Data("count_er"), "\n")
+    # cat("realtimeBars: ", e_wrapper$ge_t("count_er"), "\n")
     # Copy new bar of data into buffer
     e_wrapper$bar_data[[contract_id]][count_er, ] <<- new_bar[col_index]
     # cat("realtimeBars: ", e_wrapper$name_s[contract_id], " vol: ", e_wrapper$vols[contract_id], "\n")
@@ -161,11 +161,11 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
 #'   environment combined with handler functions.
 #' @export
 create_ewrapper <- function(debug=FALSE, errfile=stderr()) {
-  .Data <- new.env()
+  da_ta <- new.env()
   # Create accessor functions
-  get.Data <- function(x) get(x, .Data)
-  as_sign <- function(x, value) assign(x, value, .Data)
-  remove.Data <- function(x) remove(x, .Data)
+  ge_t <- function(x) get(x, da_ta)
+  as_sign <- function(x, value) assign(x, value, da_ta)
+  re_move <- function(x) remove(x, da_ta)
   if (is.null(debug)) {
     errorMessage <- function(curMsg, msg, timestamp, file,
                              twsconn, ...) {
@@ -178,44 +178,34 @@ create_ewrapper <- function(debug=FALSE, errfile=stderr()) {
   }
   else if (!debug) {
     tickPrice <- function(curMsg, msg, timestamp, file, ...) {
-      symbols <- get.Data("symbols")
-      e_tick_price(NULL, msg, timestamp, file, symbols,
-                   ...)
+      symbols <- ge_t("symbols")
+      e_tick_price(NULL, msg, timestamp, file, symbols, ...)
     }
     tickSize <- function(curMsg, msg, timestamp, file, ...) {
-      symbols <- get.Data("symbols")
-      e_tick_size(NULL, msg, timestamp, file, symbols,
-                  ...)
+      symbols <- ge_t("symbols")
+      e_tick_size(NULL, msg, timestamp, file, symbols, ...)
     }
-    tickOptionComputation <- function(curMsg, msg, timestamp,
-                                      file, ...) {
-      symbols <- get.Data("symbols")
-      e_tick_option(NULL, msg, timestamp, file, symbols,
-                    ...)
+    tickOptionComputation <- function(curMsg, msg, timestamp, file, ...) {
+      symbols <- ge_t("symbols")
+      e_tick_option(NULL, msg, timestamp, file, symbols, ...)
     }
-    tickGeneric <- function(curMsg, msg, timestamp, file,
-                            ...) {
-      symbols <- get.Data("symbols")
-      e_tick_generic(NULL, msg, timestamp, file, symbols,
-                     ...)
+    tickGeneric <- function(curMsg, msg, timestamp, file, ...) {
+      symbols <- ge_t("symbols")
+      e_tick_generic(NULL, msg, timestamp, file, symbols, ...)
     }
-    tickString <- function(curMsg, msg, timestamp, file,
-                           ...) {
-      symbols <- get.Data("symbols")
-      e_tick_string(NULL, msg, timestamp, file, symbols,
-                    ...)
+    tickString <- function(curMsg, msg, timestamp, file, ...) {
+      symbols <- ge_t("symbols")
+      e_tick_string(NULL, msg, timestamp, file, symbols, ...)
     }
     tickEFP <- function(curMsg, msg, timestamp, file, ...) {
-      symbols <- get.Data("symbols")
+      symbols <- ge_t("symbols")
       e_tick_EFP(NULL, msg, timestamp, file, symbols, ...)
     }
-    orderStatus <- function(curMsg, msg, timestamp, file,
-                            ...) {
+    orderStatus <- function(curMsg, msg, timestamp, file, ...) {
       e_order_status(curMsg, msg)
       c(curMsg, msg)
     }
-    errorMessage <- function(curMsg, msg, timestamp, file,
-                             twsconn, ...) {
+    errorMessage <- function(curMsg, msg, timestamp, file, twsconn, ...) {
       if (msg[3] == "1100")
         twsconn$connected <- FALSE
       if (msg[3] %in% c("1101", "1102"))
@@ -225,83 +215,63 @@ create_ewrapper <- function(debug=FALSE, errfile=stderr()) {
     openOrder <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    openOrderEnd <- function(curMsg, msg, timestamp, file,
-                             ...) {
+    openOrderEnd <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    updateAccountValue <- function(curMsg, msg, timestamp,
-                                   file, ...) {
+    updateAccountValue <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    updatePortfolio <- function(curMsg, msg, timestamp, file,
-                                ...) {
+    updatePortfolio <- function(curMsg, msg, timestamp, file, ...) {
       e_portfolio_value(curMsg, msg)
       c(curMsg, msg)
     }
-    updateAccountTime <- function(curMsg, msg, timestamp,
-                                  file, ...) {
+    updateAccountTime <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    accountDownloadEnd <- function(curMsg, msg, timestamp,
-                                   file, ...) {
+    accountDownloadEnd <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    nextValidId <- function(curMsg, msg, timestamp, file,
-                            ...) {
+    nextValidId <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    contractDetails <- function(curMsg, msg, timestamp, file,
-                                ...) {
+    contractDetails <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    bondContractDetails <- function(curMsg, msg, timestamp,
-                                    file, ...) {
+    bondContractDetails <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    contractDetailsEnd <- function(curMsg, msg, timestamp,
-                                   file, ...) {
+    contractDetailsEnd <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    execDetails <- function(curMsg, msg, timestamp, file,
-                            ...) {
+    execDetails <- function(curMsg, msg, timestamp, file, ...) {
       e_execDetails(curMsg, msg, file, ...)
     }
-    execDetailsEnd <- function(curMsg, msg, timestamp, file,
-                               ...) {
+    execDetailsEnd <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    updateMktDepth <- function(curMsg, msg, timestamp, file,
-                               ...) {
-      symbols <- get.Data("symbols")
-      e_update_mkt_depth(NULL, msg, timestamp, file, symbols,
-                         ...)
+    updateMktDepth <- function(curMsg, msg, timestamp, file, ...) {
+      symbols <- ge_t("symbols")
+      e_update_mkt_depth(NULL, msg, timestamp, file, symbols, ...)
     }
-    updateMktDepthL2 <- function(curMsg, msg, timestamp,
-                                 file, ...) {
-      symbols <- get.Data("symbols")
-      e_update_mkt_depthL2(NULL, msg, timestamp, file,
-                           symbols, ...)
+    updateMktDepthL2 <- function(curMsg, msg, timestamp, file, ...) {
+      symbols <- ge_t("symbols")
+      e_update_mkt_depthL2(NULL, msg, timestamp, file, symbols, ...)
     }
-    updateNewsBulletin <- function(curMsg, msg, timestamp,
-                                   file, ...) {
+    updateNewsBulletin <- function(curMsg, msg, timestamp, file, ...) {
       cat("newsMsgId: ", msg[2], "newsMsgType: ", msg[3],
-          "newsMessage: ", msg[4], "origExch:", msg[5],
-          "\n")
+          "newsMessage: ", msg[4], "origExch:", msg[5], "\n")
       c(curMsg, msg)
     }
-    managedAccounts <- function(curMsg, msg, timestamp, file,
-                                ...) {
+    managedAccounts <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
     receiveFA <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    historicalData <- function(curMsg, msg, timestamp, file,
-                               ...) {
+    historicalData <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    scannerParameters <- function(curMsg, msg, timestamp,
-                                  file, ...) {
+    scannerParameters <- function(curMsg, msg, timestamp, file, ...) {
       cat(msg <- rawToChar(msg[-which(msg == as.raw(0))]))
       c(curMsg, msg)
     }
@@ -310,44 +280,36 @@ create_ewrapper <- function(debug=FALSE, errfile=stderr()) {
       e_scannerData(curMsg, reqId, rank, contract, distance,
                     benchmark, projection, legsStr)
     }
-    scannerDataEnd <- function(curMsg, msg, timestamp, file,
-                               ...) {
+    scannerDataEnd <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
     realtimeBars <- function(curMsg, msg, timestamp, file, ...) {
-      symbols <- get.Data("symbols")
+      symbols <- ge_t("symbols")
       e_real_time_bars(curMsg, msg, symbols, file, ...)
     }
     currentTime <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    fundamentalData <- function(curMsg, msg, timestamp, file,
-                                ...) {
+    fundamentalData <- function(curMsg, msg, timestamp, file, ...) {
       e_fundamentalData(curMsg, msg)
     }
-    deltaNeutralValidation <- function(curMsg, msg, timestamp,
-                                       file, ...) {
+    deltaNeutralValidation <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
-    tickSnapshotEnd <- function(curMsg, msg, timestamp, file,
-                                ...) {
+    tickSnapshotEnd <- function(curMsg, msg, timestamp, file, ...) {
       c(curMsg, msg)
     }
   }
   else {
-    tickPrice <- tickSize <- tickOptionComputation <- tickGeneric <- tickString <- tickEFP <- orderStatus <- openOrder <- openOrderEnd <- updateAccountValue <- updateAccountTime <- updatePortfolio <- accountDownloadEnd <- nextValidId <- contractDetails <- bondContractDetails <- contractDetailsEnd <- execDetails <- execDetailsEnd <- updateMktDepth <- updateMktDepthL2 <- updateNewsBulletin <- managedAccounts <- receiveFA <- historicalData <- scannerParameters <- scannerData <- scannerDataEnd <- realtimeBars <- currentTime <- fundamentalData <- deltaNeutralValidation <- tickSnapshotEnd <- function(curMsg,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          msg, timestamp, file, ...) {
-      cat(as.character(timestamp), curMsg, msg, "\n", file=file[[1]],
-          append=TRUE, ...)
+    tickPrice <- tickSize <- tickOptionComputation <- tickGeneric <- tickString <- tickEFP <- orderStatus <- openOrder <- openOrderEnd <- updateAccountValue <- updateAccountTime <- updatePortfolio <- accountDownloadEnd <- nextValidId <- contractDetails <- bondContractDetails <- contractDetailsEnd <- execDetails <- execDetailsEnd <- updateMktDepth <- updateMktDepthL2 <- updateNewsBulletin <- managedAccounts <- receiveFA <- historicalData <- scannerParameters <- scannerData <- scannerDataEnd <- realtimeBars <- currentTime <- fundamentalData <- deltaNeutralValidation <- tickSnapshotEnd <- function(curMsg, msg, timestamp, file, ...) {
+      cat(as.character(timestamp), curMsg, msg, "\n", file=file[[1]], append=TRUE, ...)
     }
-    errorMessage <- function(curMsg, msg, timestamp, file,
-                             twsconn, ...) {
-      cat(as.character(timestamp), curMsg, msg, "\n", file=file[[1]],
-          append=TRUE, ...)
+    errorMessage <- function(curMsg, msg, timestamp, file, twsconn, ...) {
+      cat(as.character(timestamp), curMsg, msg, "\n", file=file[[1]], append=TRUE, ...)
     }
   }
-  e_wrapper <- list(.Data=.Data, get.Data=get.Data, as_sign=as_sign,
-                 remove.Data=remove.Data, tickPrice=tickPrice, tickSize=tickSize,
+  e_wrapper <- list(da_ta=da_ta, ge_t=ge_t, as_sign=as_sign,
+                 re_move=re_move, tickPrice=tickPrice, tickSize=tickSize,
                  tickOptionComputation=tickOptionComputation, tickGeneric=tickGeneric,
                  tickString=tickString, tickEFP=tickEFP, orderStatus=orderStatus,
                  errorMessage=errorMessage, openOrder=openOrder, openOrderEnd=openOrderEnd,
