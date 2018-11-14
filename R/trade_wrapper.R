@@ -4,7 +4,7 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
   # Create eWrapper environment
   e_wrapper <- create_ewrapper(NULL)
   assign("lamb_da", lamb_da, e_wrapper$da_ta)
-  # e_wrapper$lamb_da <- lamb_da
+  # e_wrapper$da_ta$lamb_da <- lamb_da
   # e_wrapper <- new.env()
   # Create eWrapper accessor functions
   # e_wrapper$get_ <- function(x) get(x, e_wrapper)
@@ -15,42 +15,30 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
   # Define dimensions of data buffer for single instrument
   col_names <- c("Time", "Open", "High", "Low", "Close", "Volume", "WAP", "Count")
   # e_wrapper$as_sign("col_names", col_names)
-  assign("col_names", col_names, e_wrapper$da_ta)
-  # e_wrapper$col_names <- col_names
+  e_wrapper$da_ta$col_names <- col_names
   n_row <- 8*60*12; n_col <- NROW(col_names)
-  assign("n_row", n_row, e_wrapper$da_ta)
-  assign("n_col", n_col, e_wrapper$da_ta)
-  # e_wrapper$n_row <- n_row
-  # e_wrapper$n_col <- n_col
-  # e_wrapper$n_row <- 8*60*12; e_wrapper$n_col <- NROW(e_wrapper$col_names)
+  e_wrapper$da_ta$n_row <- n_row
+  e_wrapper$da_ta$n_col <- n_col
   if (is.null(con_tracts))
     stop("con_tracts argument is missing")
   else {
-    assign("con_tracts", con_tracts, e_wrapper$da_ta)
-    # e_wrapper$con_tracts <- con_tracts
+    e_wrapper$da_ta$con_tracts <- con_tracts
     n_contracts <- NROW(con_tracts)
-    assign("n_contracts", n_contracts, e_wrapper$da_ta)
-    # e_wrapper$n_contracts <- n_contracts
+    e_wrapper$da_ta$n_contracts <- n_contracts
     # count_er for counting number of bars per contract
-    assign("count_er", integer(n_contracts), e_wrapper$da_ta)
-    assign("vols", numeric(n_contracts), e_wrapper$da_ta)
-    assign("beta", numeric(1), e_wrapper$da_ta)
-    # e_wrapper$count_er <- integer(n_contracts)
-    # e_wrapper$vols <- numeric(n_contracts)
-    # e_wrapper$beta <- numeric(1)
+    e_wrapper$da_ta$count_er <- integer(n_contracts)
+    e_wrapper$da_ta$vols <- numeric(n_contracts)
+    e_wrapper$da_ta$beta <- numeric(1)
     name_s <- names(con_tracts)
-    assign("name_s", name_s, e_wrapper$da_ta)
-    # e_wrapper$name_s <- name_s
+    e_wrapper$da_ta$name_s <- name_s
   }  # end if
   if (is.null(limit_prices))
     stop("limit_prices argument is missing")
   else
-    assign("limit_prices", limit_prices, e_wrapper$da_ta)
-  # e_wrapper$limit_prices <- limit_prices
+    e_wrapper$da_ta$limit_prices <- limit_prices
 
   # Create data buffer bar_data, as a list of matrices in the eWrapper environment
-  assign("bar_data", rep(list(matrix(rep(NA_real_, n_row*n_col), ncol=n_col)), n_contracts), e_wrapper$da_ta)
-  # e_wrapper$bar_data <- rep(list(matrix(rep(NA_real_, n_row*n_col), ncol=n_col)), n_contracts)
+  e_wrapper$da_ta$bar_data <- rep(list(matrix(rep(NA_real_, n_row*n_col), ncol=n_col)), n_contracts)
   names(e_wrapper$da_ta$bar_data) <- name_s
   for (it in 1:NROW(name_s)) {
     col_n <- paste(name_s[it], col_names, sep=".")
@@ -59,24 +47,23 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
     cat(paste(col_n, collapse=","), "\n", file=file_connects[[it]], append=TRUE)
   }  # end for
   # Create trade_ids buffer, as a matrix of trade ids in the eWrapper environment
-  assign("trade_ids", matrix(rep(NA_integer_, 2*n_contracts), ncol=2), e_wrapper$da_ta)
-  # e_wrapper$trade_ids <- matrix(rep(NA_integer_, 2*n_contracts), ncol=2)
+  e_wrapper$da_ta$trade_ids <- matrix(rep(NA_integer_, 2*n_contracts), ncol=2)
   colnames(e_wrapper$da_ta$trade_ids) <- c("buy_id", "sell_id")
-  # names(e_wrapper$trade_ids) <- e_wrapper$name_s
+  # names(e_wrapper$da_ta$trade_ids) <- e_wrapper$da_ta$name_s
 
   # Create data buffer bar_data, as a list of data frames in the eWrapper environment
-  # e_wrapper$bar_data <- rep(list(as.data.frame(matrix(rep(NA_real_, n_row*n_col), ncol=n_col))), n_contracts)
+  # e_wrapper$da_ta$bar_data <- rep(list(as.data.frame(matrix(rep(NA_real_, n_row*n_col), ncol=n_col))), n_contracts)
   # Create data buffer bar_data, as a list of xts series in the eWrapper environment
-  # e_wrapper$bar_data <- rep(list(structure(.xts(matrix(rep(NA_real_, n_row*n_col), ncol=n_col), 1:n_row),
+  # e_wrapper$da_ta$bar_data <- rep(list(structure(.xts(matrix(rep(NA_real_, n_row*n_col), ncol=n_col), 1:n_row),
   #                                       .Dimnames=list(NULL, col_names))),
   #                        n_contracts)
 
   # Initialize trading model parameters
-  # e_wrapper$buy_spread <- buy_spread
-  # e_wrapper$sell_spread <- sell_spread
+  # e_wrapper$da_ta$buy_spread <- buy_spread
+  # e_wrapper$da_ta$sell_spread <- sell_spread
   # Initialize state variables in eWrapper environment
-  # e_wrapper$buy_id <- 0
-  # e_wrapper$sell_id <- 0
+  # e_wrapper$da_ta$buy_id <- 0
+  # e_wrapper$da_ta$sell_id <- 0
 
   ## Define trading model function inside the eWrapper environment
   # The function model_fun is called from inside realtimeBars()
@@ -84,12 +71,12 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
     # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
     # cat("model_fun count_er: ", e_wrapper$da_ta$count_er, "\n")
     # Cancel previous trade orders
-    if (get("count_er", e_wrapper$da_ta)[contract_id] > 1) {
-      IBrokers2::cancelOrder(ib_connect, get("trade_ids", e_wrapper$da_ta)[contract_id, "buy_id"])
-      IBrokers2::cancelOrder(ib_connect, get("trade_ids", e_wrapper$da_ta)[contract_id, "sell_id"])
+    if (e_wrapper$da_ta$count_er[contract_id] > 1) {
+      IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "buy_id"])
+      IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])
     }  # end if
 
-    limit_prices <- get("limit_prices", e_wrapper$da_ta)[[contract_id]]
+    limit_prices <- e_wrapper$da_ta$limit_prices[[contract_id]]
     # cat("model_fun limit_prices: ", limit_prices, "\n")
     # Execute buy limit order
     buy_id <- IBrokers2::reqIds(ib_connect)
@@ -121,47 +108,47 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
     new_bar <- as.numeric(msg)
     # cat("realtimeBars col_names: ", col_names, "\n")
     # cat("realtimeBars n_col: ", n_col, "\n")
-    col_index <- (3:(get("n_col", e_wrapper$da_ta)+2))
-    names(new_bar)[col_index] <- get("col_names", e_wrapper$da_ta)
+    col_index <- (3:(e_wrapper$da_ta$n_col+2))
+    names(new_bar)[col_index] <- e_wrapper$da_ta$col_names
     contract_id <- new_bar[2]
-    # cat("realtimeBars count_er: ", get("count_er", e_wrapper$da_ta), "\n")
+    # cat("realtimeBars count_er: ", e_wrapper$da_ta$count_er, "\n")
     # e_wrapper$as_sign("count_er", e_wrapper$ge_t("count_er")+1)
-    count_er <- get("count_er", e_wrapper$da_ta)[contract_id] + 1
+    count_er <- e_wrapper$da_ta$count_er[contract_id] + 1
     e_wrapper$da_ta$count_er[contract_id] <- count_er
     # assign("count_er", count_er, e_wrapper$da_ta)
-    # e_wrapper$count_er[contract_id] <<- count_er
+    # e_wrapper$da_ta$count_er[contract_id] <<- count_er
     # cat("realtimeBars new_bar: ", new_bar, "\n")
     # cat("realtimeBars: ", e_wrapper$ge_t("count_er"), "\n")
     # Copy new bar of data into buffer
     e_wrapper$da_ta$bar_data[[contract_id]][count_er, ] <<- new_bar[col_index]
-    # cat("realtimeBars: ", e_wrapper$name_s[contract_id], " vol: ", e_wrapper$vols[contract_id], "\n")
-    e_wrapper$da_ta$vols[contract_id] <<- get("lamb_da", e_wrapper$da_ta)*(new_bar["High"]-new_bar["Low"]) + as.numeric(count_er>1)*(1-get("lamb_da", e_wrapper$da_ta))*get("vols", e_wrapper$da_ta)[contract_id]
+    # cat("realtimeBars: ", e_wrapper$da_ta$name_s[contract_id], " vol: ", e_wrapper$da_ta$vols[contract_id], "\n")
+    e_wrapper$da_ta$vols[contract_id] <<- e_wrapper$da_ta$lamb_da*(new_bar["High"]-new_bar["Low"]) + as.numeric(count_er>1)*(1-e_wrapper$da_ta$lamb_da)*e_wrapper$da_ta$vols[contract_id]
     # star_t <- max(2, count_er-10)
-    # e_wrapper$beta <<-
-    # cat("realtimeBars bar_data: ", e_wrapper$bar_data[[contract_id]][e_wrapper$count_er, ], "\n")
-    # if (e_wrapper$count_er > 1)
-    #   cat("realtimeBars bar_data: ", e_wrapper$bar_data[[contract_id]][e_wrapper$count_er-1, ], "\n")
-    # if (e_wrapper$count_er > 2)
-    #   cat("realtimeBars bar_data: ", e_wrapper$bar_data[[contract_id]][e_wrapper$count_er-2, ], "\n")
+    # e_wrapper$da_ta$beta <<-
+    # cat("realtimeBars bar_data: ", e_wrapper$da_ta$bar_data[[contract_id]][e_wrapper$da_ta$count_er, ], "\n")
+    # if (e_wrapper$da_ta$count_er > 1)
+    #   cat("realtimeBars bar_data: ", e_wrapper$da_ta$bar_data[[contract_id]][e_wrapper$da_ta$count_er-1, ], "\n")
+    # if (e_wrapper$da_ta$count_er > 2)
+    #   cat("realtimeBars bar_data: ", e_wrapper$da_ta$bar_data[[contract_id]][e_wrapper$da_ta$count_er-2, ], "\n")
     # Write to file
     # file_name <- file[[contract_id]]
-    cat(paste(get("bar_data", e_wrapper$da_ta)[[contract_id]][count_er, ], collapse=","), "\n", file=file[[contract_id]], append=TRUE)
+    cat(paste(e_wrapper$da_ta$bar_data[[contract_id]][count_er, ], collapse=","), "\n", file=file[[contract_id]], append=TRUE)
     # Write to file and add contract_id
-    # cat(paste(e_wrapper$name_s[[contract_id]], paste(e_wrapper$bar_data[[contract_id]][e_wrapper$count_er, ], collapse=","), sep=","), "\n",
+    # cat(paste(e_wrapper$da_ta$name_s[[contract_id]], paste(e_wrapper$da_ta$bar_data[[contract_id]][e_wrapper$da_ta$count_er, ], collapse=","), sep=","), "\n",
     #     file=file[[contract_id]], append=TRUE)
     # Write to file every 10 counts
-    # if ((e_wrapper$count_er %% 10) == 0) {
-    #   for (contract_id in 1:(e_wrapper$n_contracts)) {
-    #     data.table::fwrite(e_wrapper$bar_data[[e_wrapper$contract_id]], file=file[[e_wrapper$contract_id]])
+    # if ((e_wrapper$da_ta$count_er %% 10) == 0) {
+    #   for (contract_id in 1:(e_wrapper$da_ta$n_contracts)) {
+    #     data.table::fwrite(e_wrapper$da_ta$bar_data[[e_wrapper$da_ta$contract_id]], file=file[[e_wrapper$da_ta$contract_id]])
     #   }  # end for
     # }  # end if
-    # cat(c(e_wrapper$name_s[[contract_id]], paste(e_wrapper$bar_data[[contract_id]][e_wrapper$count_er, ], collapse=",")), "\n")
+    # cat(c(e_wrapper$da_ta$name_s[[contract_id]], paste(e_wrapper$da_ta$bar_data[[contract_id]][e_wrapper$da_ta$count_er, ], collapse=",")), "\n")
     # Write to console
-    cat(paste0("count_er=", count_er), paste0("vol=", get("vols", e_wrapper$da_ta)[contract_id]), paste0(colnames(get("bar_data", e_wrapper$da_ta)[[contract_id]]), "=", get("bar_data", e_wrapper$da_ta)[[contract_id]][count_er, ]), "\n")
-    # cat("Number of rows of data for instrument ", contract_id, " is = ", NROW(e_wrapper$bar_data[[e_wrapper$contract_id]]), "\n")
+    cat(paste0("count_er=", count_er), paste0("vol=", e_wrapper$da_ta$vols[contract_id]), paste0(colnames(e_wrapper$da_ta$bar_data[[contract_id]]), "=", e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]), "\n")
+    # cat("Number of rows of data for instrument ", contract_id, " is = ", NROW(e_wrapper$da_ta$bar_data[[e_wrapper$da_ta$contract_id]]), "\n")
     # cat(paste0("Open=", new_bar[4], "\tHigh=", new_bar[5], "\tLow=", new_bar[6], "\tClose=", new_bar[7], "\tVolume=", new_bar[8]), "\n")
     # Run the trading model
-    if (!is.na(get("limit_prices", e_wrapper$da_ta)[[contract_id]]))
+    if (!is.na(e_wrapper$da_ta$limit_prices[[contract_id]]))
       e_wrapper$model_fun(new_bar, contract_id)
     # Return values
     c(curMsg, msg)

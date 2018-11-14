@@ -42,7 +42,7 @@ IBrokers::.twsIncomingMSG
 
 + [x] In create_ewrapper() rename .Data to da_ta
 
-+ [ ] Use assign() instead of "<<-"
++ [x] Use assign() instead of "<<-" - actually revert back to "<<-"
 
 + [ ] Add handlers for reqExecutions and reqOpenOrders
 
