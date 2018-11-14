@@ -10,10 +10,10 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
   # e_wrapper$assign_ <- function(x, value) assign(x, value, e_wrapper)
   # e_wrapper$remove_ <- function(x) remove(x, e_wrapper)
   # Initialize state variables in eWrapper environment
-  # e_wrapper$assign.Data("count_er", 0)
+  # e_wrapper$as_sign("count_er", 0)
   # Define dimensions of data buffer for single instrument
   col_names <- c("Time", "Open", "High", "Low", "Close", "Volume", "WAP", "Count")
-  # e_wrapper$assign.Data("col_names", col_names)
+  # e_wrapper$as_sign("col_names", col_names)
   e_wrapper$col_names <- col_names
   n_row <- 8*60*12; n_col <- NROW(col_names)
   e_wrapper$n_row <- n_row
@@ -111,7 +111,7 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
     names(new_bar)[col_index] <- e_wrapper$col_names
     contract_id <- new_bar[2]
     # cat("realtimeBars count_er: ", e_wrapper$count_er, "\n")
-    # e_wrapper$assign.Data("count_er", e_wrapper$get.Data("count_er")+1)
+    # e_wrapper$as_sign("count_er", e_wrapper$get.Data("count_er")+1)
     count_er <- e_wrapper$count_er[contract_id] + 1
     e_wrapper$count_er[contract_id] <<- count_er
     # cat("realtimeBars new_bar: ", new_bar, "\n")
@@ -164,7 +164,7 @@ create_ewrapper <- function(debug=FALSE, errfile=stderr()) {
   .Data <- new.env()
   # Create accessor functions
   get.Data <- function(x) get(x, .Data)
-  assign.Data <- function(x, value) assign(x, value, .Data)
+  as_sign <- function(x, value) assign(x, value, .Data)
   remove.Data <- function(x) remove(x, .Data)
   if (is.null(debug)) {
     errorMessage <- function(curMsg, msg, timestamp, file,
@@ -346,7 +346,7 @@ create_ewrapper <- function(debug=FALSE, errfile=stderr()) {
           append=TRUE, ...)
     }
   }
-  e_wrapper <- list(.Data=.Data, get.Data=get.Data, assign.Data=assign.Data,
+  e_wrapper <- list(.Data=.Data, get.Data=get.Data, as_sign=as_sign,
                  remove.Data=remove.Data, tickPrice=tickPrice, tickSize=tickSize,
                  tickOptionComputation=tickOptionComputation, tickGeneric=tickGeneric,
                  tickString=tickString, tickEFP=tickEFP, orderStatus=orderStatus,

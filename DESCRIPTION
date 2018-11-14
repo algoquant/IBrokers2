@@ -1,8 +1,8 @@
 Package: IBrokers2
 Type: Package
 Title: R API to Interactive Brokers (clone of IBrokers)
-Version: 0.9-12
-Date: 2018-10-29
+Version: 0.1
+Date: 2018-11-14
 Depends:
     xts, 
     quantmod

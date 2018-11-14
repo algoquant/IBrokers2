@@ -40,10 +40,41 @@ IBrokers::.twsIncomingMSG
 
 ### tasks to-do
 
-+ [ ] In realtimeBars() calculate the trailing volatilities
++ [ ] In create_ewrapper() rename .Data to da_ta
 
-+ [ ] Pass con_tracts and limit_prices arguments into trade_wrapper(), and pass contract_id argument into model_fun()
-Trade only those contracts which have non-NA limit_prices.
++ [ ] Use assign() instead of "<<-"
+
++ [ ] Add handlers for reqExecutions and reqOpenOrders
+
++ [ ] Remove Depends: and Imports: from DESCRIPTION ?
+
++ [ ] Modify IBrokers2 startup message in zzz.R
+
++ [ ] In realtimeBars() calculate the trailing volatilities and z-scores
+
++ [ ] Load into eWrapper buffer the state variables: size of open orders, positions, cumulative PnL
+IBrokers2::reqOpenOrders
+function(twsconn) {
+  .reqOpenOrders(twsconn)
+  con <- twsconn[[1]]
+  eW  <- eWrapper()
+  while(TRUE) {
+    socketSelect(list(con), FALSE, NULL)
+    curMsg <- readBin(con, character(), 1L)
+    processMsg(curMsg, con, eW)
+  }
+}
+
++ [ ] Print to console status of the eWrapper data buffer
+
++ [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
+https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
+
++ [x] Create clone of reqRealTimeBars() called trade_realtime()
+
++ [ ] Create clone of twsCALLBACK() called call_back(), 
+Adapt from:
+http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
 
 + [ ] Add sounds when trades are placed
 https://stackoverflow.com/questions/3365657/is-there-a-way-to-make-r-beep-play-a-sound-at-the-end-of-a-script
@@ -53,6 +84,13 @@ http://code.markedmondson.me/googleLanguageR/articles/text-to-speech.html
 https://github.com/seankross/ari
 cd C:\Program Files (x86)\espeak\command_line
 espeak.exe -v english-us -s 100 "Buy"
+
++ [x] In trade_realtime() rename con to sock_et, and conn to ib_connect, and twsconn to ib_connect
+
++ [x] In create_ewrapper() rename assign.Data() to as_sign()
+
++ [x] Pass con_tracts and limit_prices arguments into trade_wrapper(), and pass contract_id argument into model_fun()
+Trade only those contracts which have non-NA limit_prices.
 
 + [x] Download data for two contracts simultaneously
 
@@ -66,30 +104,6 @@ espeak.exe -v english-us -s 100 "Buy"
 Add column names to bar_data.
 Add argument file_connects, and write the column names as headers to data files.
 Remove the dots argument of trade_wrapper().
-
-+ [ ] Print to console status of the eWrapper data buffer
-
-+ [ ] Create clone of reqRealTimeBars() called trade_realtime()
-
-+ [ ] Create clone of twsCALLBACK() called call_back(), 
-Adapt from:
-http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
-
-+ [ ] Load into buffer the state variables: size of open orders, positions, cumulative PnL
-IBrokers2::reqOpenOrders
-function(twsconn) {
-  .reqOpenOrders(twsconn)
-  con <- twsconn[[1]]
-  eW  <- eWrapper()
-  while(TRUE) {
-    socketSelect(list(con), FALSE, NULL)
-    curMsg <- readBin(con, character(), 1L)
-    processMsg(curMsg, con, eW)
-  }
-}
-
-+ [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
-https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
 
 + [x] Download real-time bars for multiple instruments using reqRealTimeBars() and eWrapper.RealTimeBars.CSV(), and compare the data
 

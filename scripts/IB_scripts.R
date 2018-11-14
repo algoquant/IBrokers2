@@ -10,6 +10,8 @@ library(HighFreq)
 ### Scripts for account information
 
 # library(IButils)
+# Install package *IBrokers2* from github:
+# devtools::install_github(repo="algoquant/IBrokers2")
 library(IBrokers2)
 
 # wipp
@@ -31,7 +33,7 @@ source("C:/Develop/R/IBrokers2/R/trade_wrapper.R")
 
 
 # Define named lists for trading one contract
-con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"))
+con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"))
 limit_prices <- list(ES=c(buy_spread=1.75, sell_spread=1.75))
 
 # Define named lists for trading one contract and saving the others
@@ -52,11 +54,6 @@ limit_prices <- list(ES=c(buy_spread=1.75, sell_spread=1.75),
 
 # Define trading model function
 
-model_fun <- function(x) {
-  x <- 10
-}  # end model_fun
-
-
 # Open the files for storing the bar data
 data_dir <- "C:/Develop/data/ib_data"
 file_names <- file.path(data_dir, paste0(names(con_tracts), "_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv"))
@@ -66,14 +63,14 @@ file_connects <- lapply(file_names, function(file_name) file(file_name, open="w"
 ib_connect <- IBrokers2::twsConnect(port=7497)
 
 # Run the trading model (strategy):
-IBrokers2::reqRealTimeBars(conn=ib_connect, useRTH=FALSE,
-                           Contract=con_tracts,
-                           eventWrapper=trade_wrapper(con_tracts=con_tracts,
-                                                      limit_prices=limit_prices,
-                                                      file_connects=file_connects,
-                                                      lamb_da=0.5),
-                           CALLBACK=twsCALLBACK,
-                           file=file_connects)
+IBrokers2::trade_realtime(ib_connect=ib_connect, useRTH=FALSE,
+                          Contract=con_tracts,
+                          eventWrapper=trade_wrapper(con_tracts=con_tracts,
+                                                     limit_prices=limit_prices,
+                                                     file_connects=file_connects,
+                                                     lamb_da=0.5),
+                          CALLBACK=twsCALLBACK,
+                          file=file_connects)
 
 # Close IB connection
 IBrokers2::twsDisconnect(ib_connect)
