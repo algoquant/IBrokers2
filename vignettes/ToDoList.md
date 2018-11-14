@@ -40,7 +40,7 @@ IBrokers::.twsIncomingMSG
 
 ### tasks to-do
 
-+ [ ] In create_ewrapper() rename .Data to da_ta
++ [x] In create_ewrapper() rename .Data to da_ta
 
 + [ ] Use assign() instead of "<<-"
 
