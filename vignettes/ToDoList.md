@@ -37,20 +37,52 @@ R CMD Rd2pdf C:\Develop\R\IBrokers2\
 # List of numeric codes of commands stored as a named list
 IBrokers::.twsIncomingMSG
 
+### Notes
+
++ [ ] Open IB demo account
+https://www.interactivebrokers.com/en/index.php?f=1286
+
++ [ ] Trade IB using Python  configure IB account
+https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
+
+
 
 ### tasks to-do
 
-+ [x] In create_ewrapper() rename .Data to da_ta
++ [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
+https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
 
-+ [x] Use assign() instead of "<<-" - actually revert back to "<<-"
++ [ ] In create_ewrapper() modify openOrder() to write to da_ta and to file
+
++ [ ] In realtimeBars() calculate the trailing volatilities and z-scores
+
++ [ ] Create clone of reqAccountUpdates() called get_account()
+
++ [ ] Create clone of reqOpenOrders() to write to file
+
++ [ ] Create sub-portfolios and place trades into sub-portfolios: use modelCode ?
+https://www.interactivebrokers.com/en/software/tws/usersguidebook/mosaic/portfoliobuilder.htm
+interactivebrokers sub portfolios
 
 + [ ] Add handlers for reqExecutions and reqOpenOrders
+
++ [ ] Create a shiny app as a front end for trading via IBrokers2: 
+C:\Develop\R\IBrokers2\scripts\app_ibtrading.R
+Every time model parameters are updated, the shiny app should interrupt the trading model in R and then restart it with the new parameters.
+Use on.exit() to remember the trade IDs.
+I've been trying to find a solution for this problem, but only stumbled into vague mentions.
+The goal is to receive live data from a trading platform with IBrokers package, accumulate it, do computations with it periodically and as the user changes reactive inputs.
+The package uses subscribe-callback mechanism to process new data. Once the data is requested, the function goes to a while(TRUE) loop and passes incoming messages to a callback function, where it can be written to a data frame, until stopped. Although it is not computationally intensive, it occupies the session.
+Is it possible to update the data on a background and periodically do the calculations with it? I suspect it somehow involves multiple R sessions, since R is single threaded. I would appreciate any tips.
+https://groups.google.com/forum/#!topic/shiny-discuss/n11-mnBYXQc
+https://github.com/ksavin/intrinio
+https://www.linkedin.com/in/ksavin/
+https://gist.github.com/trestletech/8608815
+https://stackoverflow.com/questions/21282228/update-plot-within-observer-loop-in-shiny-application
 
 + [ ] Remove Depends: and Imports: from DESCRIPTION ?
 
 + [ ] Modify IBrokers2 startup message in zzz.R
-
-+ [ ] In realtimeBars() calculate the trailing volatilities and z-scores
 
 + [ ] Load into eWrapper buffer the state variables: size of open orders, positions, cumulative PnL
 IBrokers2::reqOpenOrders
@@ -67,11 +99,6 @@ function(twsconn) {
 
 + [ ] Print to console status of the eWrapper data buffer
 
-+ [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
-https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
-
-+ [x] Create clone of reqRealTimeBars() called trade_realtime()
-
 + [ ] Create clone of twsCALLBACK() called call_back(), 
 Adapt from:
 http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
@@ -84,6 +111,19 @@ http://code.markedmondson.me/googleLanguageR/articles/text-to-speech.html
 https://github.com/seankross/ari
 cd C:\Program Files (x86)\espeak\command_line
 espeak.exe -v english-us -s 100 "Buy"
+
++ [x] Increase TWS Java heap size to 1.5 GB in file C:\Jts\tws.vmoptions
+-Xmx1500m
+https://www.interactivebrokers.com/en/software/tws/usersguidebook/priceriskanalytics/custommemory.htm
+https://ibkr.info/article/2170
+
++ [x] In trade_wrapper() add spread factor for limit price, proportional to the trailing volatility
+
++ [x] Create clone of reqRealTimeBars() called trade_realtime()
+
++ [x] In create_ewrapper() rename .Data to da_ta
+
++ [x] Use assign() instead of "<<-" - actually revert back to "<<-"
 
 + [x] In trade_realtime() rename con to sock_et, and conn to ib_connect, and twsconn to ib_connect
 
@@ -108,8 +148,6 @@ Remove the dots argument of trade_wrapper().
 + [x] Download real-time bars for multiple instruments using reqRealTimeBars() and eWrapper.RealTimeBars.CSV(), and compare the data
 
 + [ ] Every 10 counts, save all the bar_data, instead of every row, or save only 10 rows of bar_data at a time to a file, instead of every row. 
-
-+ [ ] Create sub-portfolios and place trades into sub-portfolios
 
 + [ ] Download messages and parse them with reqMktData(tws, equity1, CALLBACK=NULL, file=fn)
 http://r.789695.n4.nabble.com/Interactive-Brokers-td3668170.html

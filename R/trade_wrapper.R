@@ -1,9 +1,12 @@
 # n_contracts is the number of contracts in the data buffer
-trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lamb_da) {
+trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects,
+                          lamb_da=0.5, # vol decay factor
+                          fac_tor=2) { # spread factor for limit price
   # cat("Entering trade_wrapper", "\n")
   # Create eWrapper environment
   e_wrapper <- create_ewrapper(NULL)
-  assign("lamb_da", lamb_da, e_wrapper$da_ta)
+  e_wrapper$da_ta$lamb_da <- lamb_da
+  e_wrapper$da_ta$fac_tor <- fac_tor
   # e_wrapper$da_ta$lamb_da <- lamb_da
   # e_wrapper <- new.env()
   # Create eWrapper accessor functions
@@ -67,7 +70,7 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
 
   ## Define trading model function inside the eWrapper environment
   # The function model_fun is called from inside realtimeBars()
-  e_wrapper$model_fun <- function(new_bar, contract_id) {
+  e_wrapper$model_fun <- function(new_bar, contract_id, fac_tor=2) {
     # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
     # cat("model_fun count_er: ", e_wrapper$da_ta$count_er, "\n")
     # Cancel previous trade orders
@@ -77,17 +80,21 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects, lam
     }  # end if
 
     limit_prices <- e_wrapper$da_ta$limit_prices[[contract_id]]
+    sprea_d <- 0.25*trunc(e_wrapper$da_ta$fac_tor*e_wrapper$da_ta$vols[contract_id])
+    buy_spread <- (limit_prices["buy_spread"] - sprea_d)
+    sell_spread <- (limit_prices["sell_spread"] + sprea_d)
+
     # cat("model_fun limit_prices: ", limit_prices, "\n")
     # Execute buy limit order
     buy_id <- IBrokers2::reqIds(ib_connect)
-    buy_price <- (new_bar["Low"] - limit_prices["buy_spread"])
+    buy_price <- (new_bar["Low"] - buy_spread)
     buy_order <- IBrokers2::twsOrder(buy_id, orderType="LMT",
                                      lmtPrice=buy_price, action="BUY", totalQuantity=1)
     IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], buy_order)
 
     # Execute sell limit order
     sell_id <- IBrokers2::reqIds(ib_connect)
-    sell_price <- (new_bar["High"] + limit_prices["sell_spread"])
+    sell_price <- (new_bar["High"] + sell_spread)
     sell_order <- IBrokers2::twsOrder(sell_id, orderType="LMT",
                                       lmtPrice=sell_price, action="SELL", totalQuantity=1)
     IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], sell_order)

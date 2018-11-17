@@ -2,8 +2,10 @@ exportPattern("^[[:alpha:]]+")
 # useDynLib(IBrokers2)
 import(zoo, xts)
 
-export(create_ewrapper)
-export(trade_wrapper)
+export(trade_wrapper, 
+       create_ewrapper, 
+	   trade_realtime,
+	   get_account)
 export(reqRealTimeBars)
 export(twsConnect,
        twsConnect2,             # experimental connection object
