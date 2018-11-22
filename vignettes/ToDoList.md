@@ -1,41 +1,38 @@
 ############
 ### ToDo list for package IBrokers2: Executing Real Time Trading Strategies Via the API of Interactive Brokers
 
-### scripts for package building
+### Scripts for building packages
 
-## Steps for installing package called my_package, containing Rcpp code:
-1. Create empty package directory with Rcpp::Rcpp.package.skeleton()
-2. In the R directory create a file called my_package.R and add the header:
-
-#' @useDynLib my_package
-#' @importFrom Rcpp evalCpp
-#' @exportPattern "^[[:alpha:]]+"
-NULL
-
-Add your R functions below the header.
-
-3. Clean and rebuild (in Build menu)
+## Steps for creating a package called my_package, which contains Rcpp code:
+1. Create empty package directory with the R command: Rcpp::Rcpp.package.skeleton()
+2. In the R sub-directory of the new package, create a file called my_package.R and add the header:
+	#' @useDynLib my_package
+	#' @importFrom Rcpp evalCpp
+	#' @exportPattern "^[[:alpha:]]+"
+Add your R functions below the above header.
+3. In the Build menu, Clean and rebuild
 
 
-## Build scripts:
+## Scripts for installing packages:
 
-# Install package from source on local drive
-install.packages(pkgs="C:/Develop/R/IBrokers2", repos=NULL, type="source")
-# Install package from source on local drive using R CMD
-R CMD INSTALL C:\Develop\R\IBrokers2
-# Install package from github
-devtools::install_github(repo="algoquant/IBrokers2", force=TRUE)
-# build vignette package reference manual from *.Rd files
-system("R CMD Rd2pdf C:/Develop/R/IBrokers2")
-cd C:\Develop\R\IBrokers2\vignettes
-R CMD Rd2pdf C:\Develop\R\IBrokers2\
+Install package from source on local drive
+	install.packages(pkgs="C:/Develop/R/IBrokers2", repos=NULL, type="source")
+Install package from source on local drive using R CMD
+	R CMD INSTALL C:\Develop\R\IBrokers2
+Install package from github
+	devtools::install_github(repo="algoquant/IBrokers2", force=TRUE)
+Build vignette package reference manual from *.Rd files
+	system("R CMD Rd2pdf C:/Develop/R/IBrokers2")
+	cd C:\Develop\R\IBrokers2\vignettes
+	R CMD Rd2pdf C:\Develop\R\IBrokers2\
 
 
 
 ### Comments and package analysis
 
-# List of numeric codes of commands stored as a named list
+# Named lists of numeric codes of IB TWS messages (stored as named lists)
 IBrokers::.twsIncomingMSG
+
 
 ### Notes
 
@@ -49,10 +46,16 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
++ [x] Add ability to trade with a time lag
+In trade_wrapper() create a matrix of past limit_prices, and update the limit_prices in model_fun().
+Set the current limit prices to past limit_prices.
+
++ [x] Rename limit_prices to trade_params, and add lagg parameter to trade_params
+
 + [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
 https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
 
-+ [ ] In create_ewrapper() modify openOrder() to write to da_ta and to file
++ [ ] In create_ewrapper() modify openOrder() to write to the da_ta environment and to a file
 
 + [ ] In realtimeBars() calculate the trailing volatilities and z-scores
 
@@ -112,8 +115,8 @@ https://github.com/seankross/ari
 cd C:\Program Files (x86)\espeak\command_line
 espeak.exe -v english-us -s 100 "Buy"
 
-+ [x] Increase TWS Java heap size to 1.5 GB in file C:\Jts\tws.vmoptions
--Xmx1500m
++ [x] Increase TWS Java heap size to 2.5 GB in file C:\Jts\tws.vmoptions
+-Xmx2500m
 https://www.interactivebrokers.com/en/software/tws/usersguidebook/priceriskanalytics/custommemory.htm
 https://ibkr.info/article/2170
 

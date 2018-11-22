@@ -1,7 +1,7 @@
 # n_contracts is the number of contracts in the data buffer
-trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects,
+trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
                           lamb_da=0.5, # vol decay factor
-                          fac_tor=2) { # spread factor for limit price
+                          fac_tor=0) { # spread factor for limit price
   # cat("Entering trade_wrapper", "\n")
   # Create eWrapper environment
   e_wrapper <- create_ewrapper(NULL)
@@ -35,10 +35,21 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects,
     name_s <- names(con_tracts)
     e_wrapper$da_ta$name_s <- name_s
   }  # end if
-  if (is.null(limit_prices))
-    stop("limit_prices argument is missing")
-  else
-    e_wrapper$da_ta$limit_prices <- limit_prices
+  if (is.null(trade_params))
+    stop("trade_params argument is missing")
+  else {
+    if (!(n_contracts == NROW(trade_params)))
+      stop("trade_params argument is missing some elements")
+    e_wrapper$da_ta$trade_params <- trade_params
+    e_wrapper$da_ta$limit_prices <- lapply(trade_params, function(trade_param) {
+      if (!is.na(trade_param) && (trade_param["lagg"] > 0)) {
+        nn <- (trade_param["lagg"]+1)
+        structure(matrix(numeric(2*nn), nc=2), dimnames=list(rows=1:nn, columns=c("buy_limit", "sell_limit")))
+      }  # end if
+      else
+        0
+    })  # end lapply
+  }  # end if
 
   # Create data buffer bar_data, as a list of matrices in the eWrapper environment
   e_wrapper$da_ta$bar_data <- rep(list(matrix(rep(NA_real_, n_row*n_col), ncol=n_col)), n_contracts)
@@ -79,30 +90,43 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects,
       IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])
     }  # end if
 
-    limit_prices <- e_wrapper$da_ta$limit_prices[[contract_id]]
+    trade_params <- e_wrapper$da_ta$trade_params[[contract_id]]
     sprea_d <- 0.25*trunc(e_wrapper$da_ta$fac_tor*e_wrapper$da_ta$vols[contract_id])
-    buy_spread <- (limit_prices["buy_spread"] - sprea_d)
-    sell_spread <- (limit_prices["sell_spread"] + sprea_d)
+    buy_spread <- (trade_params["buy_spread"] - sprea_d)
+    sell_spread <- (trade_params["sell_spread"] + sprea_d)
+    buy_limit <- (new_bar["Low"] - buy_spread)
+    sell_limit <- (new_bar["High"] + sell_spread)
 
-    # cat("model_fun limit_prices: ", limit_prices, "\n")
+    lagg <- trade_params["lagg"]
+    if (lagg > 0) {
+      e_wrapper$da_ta$limit_prices[[contract_id]][2:(lagg+1), ] <<- e_wrapper$da_ta$limit_prices[[contract_id]][1:lagg, ]
+      e_wrapper$da_ta$limit_prices[[contract_id]][1, ] <<- c(buy_limit, sell_limit)
+      # max() to avoid zeros in warmup period
+      buy_limit <- max(buy_limit, e_wrapper$da_ta$limit_prices[[contract_id]][lagg+1, "buy_limit"])
+      # buy_limit should be no greater than close price
+      buy_limit <- min(new_bar["Close"], buy_limit)
+      sell_limit <- max(sell_limit, e_wrapper$da_ta$limit_prices[[contract_id]][lagg+1, "sell_limit"])
+      # sell_limit should be no less than close price
+      sell_limit <- max(new_bar["Close"], sell_limit)
+    }  # end if
+
+    # cat("model_fun trade_params: ", trade_params, "\n")
     # Execute buy limit order
     buy_id <- IBrokers2::reqIds(ib_connect)
-    buy_price <- (new_bar["Low"] - buy_spread)
     buy_order <- IBrokers2::twsOrder(buy_id, orderType="LMT",
-                                     lmtPrice=buy_price, action="BUY", totalQuantity=1)
+                                     lmtPrice=buy_limit, action="BUY", totalQuantity=trade_params["siz_e"])
     IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], buy_order)
 
     # Execute sell limit order
     sell_id <- IBrokers2::reqIds(ib_connect)
-    sell_price <- (new_bar["High"] + sell_spread)
     sell_order <- IBrokers2::twsOrder(sell_id, orderType="LMT",
-                                      lmtPrice=sell_price, action="SELL", totalQuantity=1)
+                                      lmtPrice=sell_limit, action="SELL", totalQuantity=trade_params["siz_e"])
     IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], sell_order)
 
     e_wrapper$da_ta$trade_ids[contract_id, "buy_id"] <<- buy_id
     e_wrapper$da_ta$trade_ids[contract_id, "sell_id"] <<- sell_id
 
-    cat("Buy order at: ", buy_price, "\tSell order at: ", sell_price, "\n")
+    cat("Buy limit order at: ", buy_limit, "\tSell limit order at: ", sell_limit, "\n")
 
     invisible(list(buy_id=buy_id, sell_id=sell_id))
   }  # end model_fun
@@ -151,11 +175,11 @@ trade_wrapper <- function(con_tracts=NULL, limit_prices=NULL, file_connects,
     # }  # end if
     # cat(c(e_wrapper$da_ta$name_s[[contract_id]], paste(e_wrapper$da_ta$bar_data[[contract_id]][e_wrapper$da_ta$count_er, ], collapse=",")), "\n")
     # Write to console
-    cat(paste0("count_er=", count_er), paste0("vol=", e_wrapper$da_ta$vols[contract_id]), paste0(colnames(e_wrapper$da_ta$bar_data[[contract_id]]), "=", e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]), "\n")
+    cat(paste0("count_er=", count_er), paste0("vol=", round(e_wrapper$da_ta$vols[contract_id], 2)), paste0(colnames(e_wrapper$da_ta$bar_data[[contract_id]]), "=", e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]), "\n")
     # cat("Number of rows of data for instrument ", contract_id, " is = ", NROW(e_wrapper$da_ta$bar_data[[e_wrapper$da_ta$contract_id]]), "\n")
     # cat(paste0("Open=", new_bar[4], "\tHigh=", new_bar[5], "\tLow=", new_bar[6], "\tClose=", new_bar[7], "\tVolume=", new_bar[8]), "\n")
     # Run the trading model
-    if (!is.na(e_wrapper$da_ta$limit_prices[[contract_id]]))
+    if (!is.na(e_wrapper$da_ta$trade_params[[contract_id]]))
       e_wrapper$model_fun(new_bar, contract_id)
     # Return values
     c(curMsg, msg)

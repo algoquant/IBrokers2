@@ -61,12 +61,12 @@ trade_realtime <- function(ib_connect, Contract,
   # Submit requests to IB
   if (!is.twsPlayback(ib_connect)) {
     # Request account updates
-    writeBin(.twsOutgoingMSG$REQ_ACCOUNT_DATA, sock_et)
-    writeBin("2", sock_et)
-    writeBin("1", sock_et)
-    writeBin("1", sock_et)
+    # writeBin(.twsOutgoingMSG$REQ_ACCOUNT_DATA, sock_et)
+    # writeBin("2", sock_et)
+    # writeBin("1", sock_et)
+    # writeBin("1", sock_et)
     # Request open orders
-    writeBin(c(.twsOutgoingMSG$REQ_OPEN_ORDERS, "1"), sock_et)
+    # writeBin(c(.twsOutgoingMSG$REQ_OPEN_ORDERS, "1"), sock_et)
     # Submit data requests
     tickerId <- .trade_realtime(ib_connect, Contract, whatToShow, barSize, useRTH, tickerId)
   }  # end if
