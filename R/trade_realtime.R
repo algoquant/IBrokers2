@@ -44,7 +44,8 @@
 
 
 #' @export
-trade_realtime <- function(ib_connect, Contract,
+trade_realtime <- function(ib_connect,
+                           Contract,
                            whatToShow="TRADES",
                            barSize="5",
                            useRTH=TRUE,

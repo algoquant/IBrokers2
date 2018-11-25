@@ -1,13 +1,12 @@
 # n_contracts is the number of contracts in the data buffer
-trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
-                          lamb_da=0.5, # vol decay factor
-                          fac_tor=0) { # spread factor for limit price
+trade_wrapper <- function(con_tracts=NULL,
+                          trade_params=NULL,
+                          file_connects,
+                          warm_up=100) { # warmup period
   # cat("Entering trade_wrapper", "\n")
   # Create eWrapper environment
   e_wrapper <- create_ewrapper(NULL)
-  e_wrapper$da_ta$lamb_da <- lamb_da
-  e_wrapper$da_ta$fac_tor <- fac_tor
-  # e_wrapper$da_ta$lamb_da <- lamb_da
+  e_wrapper$da_ta$warm_up <- warm_up
   # e_wrapper <- new.env()
   # Create eWrapper accessor functions
   # e_wrapper$get_ <- function(x) get(x, e_wrapper)
@@ -28,12 +27,15 @@ trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
     e_wrapper$da_ta$con_tracts <- con_tracts
     n_contracts <- NROW(con_tracts)
     e_wrapper$da_ta$n_contracts <- n_contracts
-    # count_er for counting number of bars per contract
-    e_wrapper$da_ta$count_er <- integer(n_contracts)
-    e_wrapper$da_ta$vols <- numeric(n_contracts)
-    e_wrapper$da_ta$beta <- numeric(1)
     name_s <- names(con_tracts)
     e_wrapper$da_ta$name_s <- name_s
+    # count_er for counting number of bars collected for each contract
+    e_wrapper$da_ta$count_er <- integer(n_contracts)
+    # Vector of volatilities, one for each contract
+    e_wrapper$da_ta$vols <- numeric(n_contracts)
+    # Vector of EWMAs, one for each contract
+    e_wrapper$da_ta$ewmas <- numeric(n_contracts)
+    # e_wrapper$da_ta$beta <- numeric(1)
   }  # end if
   if (is.null(trade_params))
     stop("trade_params argument is missing")
@@ -41,17 +43,9 @@ trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
     if (!(n_contracts == NROW(trade_params)))
       stop("trade_params argument is missing some elements")
     e_wrapper$da_ta$trade_params <- trade_params
-    e_wrapper$da_ta$limit_prices <- lapply(trade_params, function(trade_param) {
-      if (!is.na(trade_param) && (trade_param["lagg"] > 0)) {
-        nn <- (trade_param["lagg"]+1)
-        structure(matrix(numeric(2*nn), nc=2), dimnames=list(rows=1:nn, columns=c("buy_limit", "sell_limit")))
-      }  # end if
-      else
-        0
-    })  # end lapply
   }  # end if
 
-  # Create data buffer bar_data, as a list of matrices in the eWrapper environment
+  # Create data buffer bar_data, a list of matrices in the eWrapper environment
   e_wrapper$da_ta$bar_data <- rep(list(matrix(rep(NA_real_, n_row*n_col), ncol=n_col)), n_contracts)
   names(e_wrapper$da_ta$bar_data) <- name_s
   for (it in 1:NROW(name_s)) {
@@ -81,34 +75,34 @@ trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
 
   ## Define trading model function inside the eWrapper environment
   # The function model_fun is called from inside realtimeBars()
-  e_wrapper$model_fun <- function(new_bar, contract_id, fac_tor=2) {
+  e_wrapper$model_fun <- function(contract_id, trade_params) {
     # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
     # cat("model_fun count_er: ", e_wrapper$da_ta$count_er, "\n")
     # Cancel previous trade orders
-    if (e_wrapper$da_ta$count_er[contract_id] > 1) {
+    if (!is.na(e_wrapper$da_ta$trade_ids[contract_id, "buy_id"]) &&
+         !is.na(e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])) {
       IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "buy_id"])
       IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])
     }  # end if
 
-    trade_params <- e_wrapper$da_ta$trade_params[[contract_id]]
-    sprea_d <- 0.25*trunc(e_wrapper$da_ta$fac_tor*e_wrapper$da_ta$vols[contract_id])
-    buy_spread <- (trade_params["buy_spread"] - sprea_d)
-    sell_spread <- (trade_params["sell_spread"] + sprea_d)
-    buy_limit <- (new_bar["Low"] - buy_spread)
-    sell_limit <- (new_bar["High"] + sell_spread)
-
     lagg <- trade_params["lagg"]
-    if (lagg > 0) {
-      e_wrapper$da_ta$limit_prices[[contract_id]][2:(lagg+1), ] <<- e_wrapper$da_ta$limit_prices[[contract_id]][1:lagg, ]
-      e_wrapper$da_ta$limit_prices[[contract_id]][1, ] <<- c(buy_limit, sell_limit)
-      # max() to avoid zeros in warmup period
-      buy_limit <- max(buy_limit, e_wrapper$da_ta$limit_prices[[contract_id]][lagg+1, "buy_limit"])
-      # buy_limit should be no greater than close price
-      buy_limit <- min(new_bar["Close"], buy_limit)
-      sell_limit <- max(sell_limit, e_wrapper$da_ta$limit_prices[[contract_id]][lagg+1, "sell_limit"])
-      # sell_limit should be no less than close price
-      sell_limit <- max(new_bar["Close"], sell_limit)
-    }  # end if
+    # trade_params <- e_wrapper$da_ta$trade_params[[contract_id]]
+    # scale the sprea_d by the vol level - default is zero
+    # sprea_d <- 0.25*trunc(e_wrapper$da_ta$fac_tor*e_wrapper$da_ta$vols[contract_id])
+    # Calculate sprea_d by comparing lagged WAP with EWMA
+    count_er <- e_wrapper$da_ta$count_er[contract_id]
+    it <- (count_er - lagg)
+    ohlc_lag <- e_wrapper$da_ta$bar_data[[contract_id]][it, ]
+    sprea_d <- (if (ohlc_lag[7] > e_wrapper$da_ta$ewmas[contract_id]) 0.25 else -0.25)
+    # Limit prices are the low and high prices of the lagged bar, plus the spreads
+    buy_limit <- (ohlc_lag[4] - trade_params["buy_spread"] + sprea_d)
+    sell_limit <- (ohlc_lag[3] + trade_params["sell_spread"] + sprea_d)
+
+    # buy_limit should be no greater than close price
+    clo_se <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, 5]
+    buy_limit <- min(clo_se, buy_limit)
+    # sell_limit should be no less than close price
+    sell_limit <- max(clo_se, sell_limit)
 
     # cat("model_fun trade_params: ", trade_params, "\n")
     # Execute buy limit order
@@ -142,6 +136,7 @@ trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
     col_index <- (3:(e_wrapper$da_ta$n_col+2))
     names(new_bar)[col_index] <- e_wrapper$da_ta$col_names
     contract_id <- new_bar[2]
+    trade_params <- e_wrapper$da_ta$trade_params[[contract_id]]
     # cat("realtimeBars count_er: ", e_wrapper$da_ta$count_er, "\n")
     # e_wrapper$as_sign("count_er", e_wrapper$ge_t("count_er")+1)
     count_er <- e_wrapper$da_ta$count_er[contract_id] + 1
@@ -153,7 +148,11 @@ trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
     # Copy new bar of data into buffer
     e_wrapper$da_ta$bar_data[[contract_id]][count_er, ] <<- new_bar[col_index]
     # cat("realtimeBars: ", e_wrapper$da_ta$name_s[contract_id], " vol: ", e_wrapper$da_ta$vols[contract_id], "\n")
-    e_wrapper$da_ta$vols[contract_id] <<- e_wrapper$da_ta$lamb_da*(new_bar["High"]-new_bar["Low"]) + as.numeric(count_er>1)*(1-e_wrapper$da_ta$lamb_da)*e_wrapper$da_ta$vols[contract_id]
+    if (!is.na(trade_params)) {
+      if (count_er>1) {lamb_da <- trade_params$lamb_da} else {lamb_da <- 1}
+      e_wrapper$da_ta$vols[contract_id] <<- lamb_da*(new_bar["High"]-new_bar["Low"]) + (1-lamb_da)*e_wrapper$da_ta$vols[contract_id]
+      e_wrapper$da_ta$ewmas[contract_id] <<- lamb_da*new_bar["WAP"] + (1-lamb_da)*e_wrapper$da_ta$ewmas[contract_id]
+    }  # end if
     # star_t <- max(2, count_er-10)
     # e_wrapper$da_ta$beta <<-
     # cat("realtimeBars bar_data: ", e_wrapper$da_ta$bar_data[[contract_id]][e_wrapper$da_ta$count_er, ], "\n")
@@ -179,8 +178,8 @@ trade_wrapper <- function(con_tracts=NULL, trade_params=NULL, file_connects,
     # cat("Number of rows of data for instrument ", contract_id, " is = ", NROW(e_wrapper$da_ta$bar_data[[e_wrapper$da_ta$contract_id]]), "\n")
     # cat(paste0("Open=", new_bar[4], "\tHigh=", new_bar[5], "\tLow=", new_bar[6], "\tClose=", new_bar[7], "\tVolume=", new_bar[8]), "\n")
     # Run the trading model
-    if (!is.na(e_wrapper$da_ta$trade_params[[contract_id]]))
-      e_wrapper$model_fun(new_bar, contract_id)
+    if (!is.na(trade_params) && (count_er > e_wrapper$da_ta$warm_up))
+      e_wrapper$model_fun(contract_id, trade_params)
     # Return values
     c(curMsg, msg)
   }  # end realtimeBars

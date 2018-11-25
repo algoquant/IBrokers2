@@ -59,14 +59,14 @@ IBrokers2::twsDisconnect(ib_connect)
 # Define named lists for trading one contract
 con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"))
 con_tracts <- list(GBP=IBrokers2::twsFuture(symbol="GBP", exch="GLOBEX", expiry="201812"))
-trade_params <- list(ES=c(buy_spread=0.5, sell_spread=0.5, siz_e=1, lagg=0))
+trade_params <- list(ES=c(buy_spread=0.5, sell_spread=0.5, siz_e=1, lagg=2, lamb_da=0.1))
 
 # Define named lists for trading one contract and saving the others
 con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"),
                    QM=IBrokers2::twsFuture(symbol="QM", exch="NYMEX", expiry="201901"),
                    GBP=IBrokers2::twsCurrency("GBP", currency="USD"),
                    ZN=IBrokers2::twsFuture(symbol="ZN", exch="ECBOT", expiry="201812"))
-trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2), QM=NA, GBP=NA, ZN=NA)
+trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.1), QM=NA, GBP=NA, ZN=NA)
 trade_params <- list(ES=NA, QM=NA, GBP=c(buy_spread=0.001, sell_spread=0.001, siz_e=5e4, lagg=0), ZN=NA)
 
 

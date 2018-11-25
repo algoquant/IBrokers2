@@ -46,11 +46,9 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
-+ [x] Add ability to trade with a time lag
-In trade_wrapper() create a matrix of past limit_prices, and update the limit_prices in model_fun().
-Set the current limit prices to past limit_prices.
++ [ ] Add argument play_back to trade_realtime(), to backtest the market-making strategy using 5-second bar data
 
-+ [x] Rename limit_prices to trade_params, and add lagg parameter to trade_params
++ [ ] Call reqAccountUpdates() inside realtimeBars() and add results to buffer
 
 + [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
 https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
@@ -58,6 +56,9 @@ https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
 + [ ] In create_ewrapper() modify openOrder() to write to the da_ta environment and to a file
 
 + [ ] In realtimeBars() calculate the trailing volatilities and z-scores
+
++ [ ] In trade_wrapper() add inventory limit: if inventory reaches its limit then stop placing orders in that direction
+Add invent_limit to argument trade_params in trade_wrapper().
 
 + [ ] Create clone of reqAccountUpdates() called get_account()
 
@@ -68,6 +69,25 @@ https://www.interactivebrokers.com/en/software/tws/usersguidebook/mosaic/portfol
 interactivebrokers sub portfolios
 
 + [ ] Add handlers for reqExecutions and reqOpenOrders
+
++ [x] Move argument lamb_da to argument trade_params
+
++ [x] In trade_wrapper() add spread bias to the limit prices if there is momentum
+For example, use EWMA crossover.
+Or if there are two consecutive trades in the same direction.
+
++ [x] In trade_wrapper() add argument warm_up for warmup period: don't trade in warmup period
+Rename argument fac_tor to warm_up.
+
++ [x] Add argument trade_params to model_fun()
+
++ [x] In trade_wrapper() get rid of limit_prices
+
++ [x] In trade_wrapper() add ability to trade with a time lag
+Create a matrix of past limit_prices, and update the limit_prices in model_fun().
+Set the current limit prices to past limit_prices.
+
++ [x] Rename limit_prices to trade_params, and add lagg parameter to trade_params
 
 + [ ] Create a shiny app as a front end for trading via IBrokers2: 
 C:\Develop\R\IBrokers2\scripts\app_ibtrading.R
