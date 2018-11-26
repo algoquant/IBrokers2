@@ -59,7 +59,7 @@ IBrokers2::twsDisconnect(ib_connect)
 # Define named lists for trading one contract
 con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"))
 con_tracts <- list(GBP=IBrokers2::twsFuture(symbol="GBP", exch="GLOBEX", expiry="201812"))
-trade_params <- list(ES=c(buy_spread=0.5, sell_spread=0.5, siz_e=1, lagg=2, lamb_da=0.1))
+trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.1))
 
 # Define named lists for trading one contract and saving the others
 con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"),
@@ -67,7 +67,7 @@ con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="2
                    GBP=IBrokers2::twsCurrency("GBP", currency="USD"),
                    ZN=IBrokers2::twsFuture(symbol="ZN", exch="ECBOT", expiry="201812"))
 trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.1), QM=NA, GBP=NA, ZN=NA)
-trade_params <- list(ES=NA, QM=NA, GBP=c(buy_spread=0.001, sell_spread=0.001, siz_e=5e4, lagg=0), ZN=NA)
+trade_params <- list(ES=NA, QM=NA, GBP=c(buy_spread=0.001, sell_spread=0.001, siz_e=5e4, lagg=0, lamb_da=0.1), ZN=NA)
 
 
 # The simple market-making strategy is defined as follows:
@@ -86,18 +86,24 @@ data_dir <- "C:/Develop/data/ib_data"
 file_names <- file.path(data_dir, paste0(names(con_tracts), "_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv"))
 file_connects <- lapply(file_names, function(file_name) file(file_name, open="w"))
 
-# Open the IB connection
+# Open the IB connection to TWS
 ib_connect <- IBrokers2::twsConnect(port=7497)
+# Open the IB connection to output file
+ib_connect <- file(file.path(data_dir, paste0("output_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv")),
+                   open="w")
 
 
 # Run the trading model (strategy):
-IBrokers2::trade_realtime(ib_connect=ib_connect, useRTH=FALSE,
+IBrokers2::trade_realtime(ib_connect=ib_connect,
                           Contract=con_tracts,
-                          eventWrapper=trade_wrapper(con_tracts=con_tracts,
+                          useRTH=FALSE,
+                          back_test=FALSE,
+                          eventWrapper=IBrokers2::trade_wrapper(con_tracts=con_tracts,
                                                      trade_params=trade_params,
                                                      file_connects=file_connects,
-                                                     lamb_da=0.5, fac_tor=0.0),
-                          CALLBACK=twsCALLBACK,
+                                                     warm_up=100),
+                          CALLBACK=IBrokers2::call_back,
+                          # CALLBACK=IBrokers2::twsCALLBACK,
                           file=file_connects)
 
 # Execute buy market order
@@ -116,6 +122,7 @@ IBrokers2::twsDisconnect(ib_connect)
 
 # Close data files
 for (file_connect in file_connects) close(file_connect)
+close(ib_connect)
 
 
 # IBrokers2::reqOpenOrders(ib_connect)

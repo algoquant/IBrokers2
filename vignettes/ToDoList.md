@@ -46,9 +46,16 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
-+ [ ] Add argument play_back to trade_realtime(), to backtest the market-making strategy using 5-second bar data
++ [x] In realtimeBars() and model_fun() add argument ib_connect
+In processMsg() pass argument twsconn into eWrapper$realtimeBars()
 
-+ [ ] Call reqAccountUpdates() inside realtimeBars() and add results to buffer
++ [x] In trade_realtime() rename the argument playback to back_test (with default FALSE), for backtesting trading strategies using 5-second bar data
+
++ [x] Create a clone of twsCALLBACK() called call_back() - rename argument playback to back_test, with default FALSE
+Adapt from:
+http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
+
++ [x] Call reqAccountUpdates() inside realtimeBars() to download net positions from IB
 
 + [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
 https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
@@ -60,9 +67,9 @@ https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
 + [ ] In trade_wrapper() add inventory limit: if inventory reaches its limit then stop placing orders in that direction
 Add invent_limit to argument trade_params in trade_wrapper().
 
-+ [ ] Create clone of reqAccountUpdates() called get_account()
++ [ ] Create a clone of reqAccountUpdates() called get_account()
 
-+ [ ] Create clone of reqOpenOrders() to write to file
++ [ ] Create a clone of reqOpenOrders() to write to file
 
 + [ ] Create sub-portfolios and place trades into sub-portfolios: use modelCode ?
 https://www.interactivebrokers.com/en/software/tws/usersguidebook/mosaic/portfoliobuilder.htm
@@ -70,7 +77,7 @@ interactivebrokers sub portfolios
 
 + [ ] Add handlers for reqExecutions and reqOpenOrders
 
-+ [x] Move argument lamb_da to argument trade_params
++ [x] Move argument lamb_da to argument vector trade_params
 
 + [x] In trade_wrapper() add spread bias to the limit prices if there is momentum
 For example, use EWMA crossover.
@@ -121,10 +128,6 @@ function(twsconn) {
 }
 
 + [ ] Print to console status of the eWrapper data buffer
-
-+ [ ] Create clone of twsCALLBACK() called call_back(), 
-Adapt from:
-http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
 
 + [ ] Add sounds when trades are placed
 https://stackoverflow.com/questions/3365657/is-there-a-way-to-make-r-beep-play-a-sound-at-the-end-of-a-script

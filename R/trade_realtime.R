@@ -49,14 +49,15 @@ trade_realtime <- function(ib_connect,
                            whatToShow="TRADES",
                            barSize="5",
                            useRTH=TRUE,
-                           playback=1,
+                           back_test=FALSE,
                            tickerId="1",
                            file="",
                            verbose=TRUE,
                            eventWrapper=trade_wrapper(),
                            CALLBACK=twsCALLBACK, ...) {
 
-  # Extract socket from IB connection
+  if (!back_test) {
+    # Extract socket from IB connection
   sock_et <- ib_connect[[1]]
 
   # Submit requests to IB
@@ -119,9 +120,10 @@ trade_realtime <- function(ib_connect,
     file <- list(file)
   if(length(file) != length(Contract))
     file <- rep(file, length(Contract))
+  }  # end if (!back_test)
 
   # Run callback function
-  CALLBACK(ib_connect, eWrapper=eventWrapper, timestamp=timeStamp, file=file, playback=playback, ...)
+  CALLBACK(ib_connect, eWrapper=eventWrapper, timestamp=timeStamp, file=file, back_test=back_test, ...)
 }  # end trade_realtime
 
 

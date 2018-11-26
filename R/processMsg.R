@@ -209,7 +209,7 @@ processMsg <- function(curMsg, con, eWrapper, timestamp, file, twsconn, ...) {
   } else
   if(curMsg == .twsIncomingMSG$REAL_TIME_BARS) {
     msg <- readBin(con, "character", 10)
-    eWrapper$realtimeBars(curMsg, msg, timestamp, file, ...)
+    eWrapper$realtimeBars(curMsg, msg, timestamp, file, twsconn, ...)
   } else
   if(curMsg == .twsIncomingMSG$FUNDAMENTAL_DATA) {
     msg <- readBin(con, "character", 3)
