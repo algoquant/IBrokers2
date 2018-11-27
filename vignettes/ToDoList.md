@@ -46,16 +46,16 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
++ [x] Pass ac_count argument with acctCode into trade_wrapper()
+
++ [x] Call reqAccountUpdates() inside realtimeBars() to download net positions from IB
+
 + [x] In realtimeBars() and model_fun() add argument ib_connect
 In processMsg() pass argument twsconn into eWrapper$realtimeBars()
 
 + [x] In trade_realtime() rename the argument playback to back_test (with default FALSE), for backtesting trading strategies using 5-second bar data
 
 + [x] Create a clone of twsCALLBACK() called call_back() - rename argument playback to back_test, with default FALSE
-Adapt from:
-http://r.789695.n4.nabble.com/Howto-cancel-reqMktData-from-IBrokers-package-td1562054.html
-
-+ [x] Call reqAccountUpdates() inside realtimeBars() to download net positions from IB
 
 + [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
 https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
