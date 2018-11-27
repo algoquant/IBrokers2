@@ -35,6 +35,8 @@ trade_wrapper <- function(ac_count,
     e_wrapper$da_ta$ewma <- numeric(n_contracts)
     # Vector of net positions, one for each contract
     e_wrapper$da_ta$position <- integer(n_contracts)
+    # Vector of open orders, one for each contract
+    e_wrapper$da_ta$open_orders <- integer(n_contracts)
     # e_wrapper$da_ta$beta <- numeric(1)
   }  # end if
 

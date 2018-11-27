@@ -46,6 +46,13 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
++ [ ] Create a clone of reqOpenOrders() to write to file
+
++ [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
+https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
+
++ [ ] In create_ewrapper() modify the handlers openOrder() and openOrderEnd() for reqExecutions and reqOpenOrders
+
 + [x] Pass ac_count argument with acctCode into trade_wrapper()
 
 + [x] Call reqAccountUpdates() inside realtimeBars() to download net positions from IB
@@ -57,9 +64,6 @@ In processMsg() pass argument twsconn into eWrapper$realtimeBars()
 
 + [x] Create a clone of twsCALLBACK() called call_back() - rename argument playback to back_test, with default FALSE
 
-+ [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
-https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
-
 + [ ] In create_ewrapper() modify openOrder() to write to the da_ta environment and to a file
 
 + [ ] In realtimeBars() calculate the trailing volatilities and z-scores
@@ -69,13 +73,9 @@ Add invent_limit to argument trade_params in trade_wrapper().
 
 + [ ] Create a clone of reqAccountUpdates() called get_account()
 
-+ [ ] Create a clone of reqOpenOrders() to write to file
-
 + [ ] Create sub-portfolios and place trades into sub-portfolios: use modelCode ?
 https://www.interactivebrokers.com/en/software/tws/usersguidebook/mosaic/portfoliobuilder.htm
 interactivebrokers sub portfolios
-
-+ [ ] Add handlers for reqExecutions and reqOpenOrders
 
 + [x] Move argument lamb_da to argument vector trade_params
 
