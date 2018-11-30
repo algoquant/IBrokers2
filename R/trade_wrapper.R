@@ -83,70 +83,6 @@ trade_wrapper <- function(ac_count,
   # })  # end lapply
 
 
-  ## Define trading model function inside the eWrapper environment
-  # The function model_fun is called from inside realtimeBars()
-  e_wrapper$model_fun <- function(contract_id, trade_params, ib_connect) {
-    # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
-    # cat("model_fun count_er: ", e_wrapper$da_ta$count_er, "\n")
-    # Cancel previous trade orders
-    if (IBrokers2::is.twsConnection(ib_connect) &&
-        !is.na(e_wrapper$da_ta$trade_ids[contract_id, "buy_id"]) &&
-         !is.na(e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])) {
-      IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "buy_id"])
-      IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])
-    }  # end if
-
-    # scale the sprea_d by the vol level - default is zero
-    # sprea_d <- 0.25*trunc(e_wrapper$da_ta$fac_tor*e_wrapper$da_ta$vol[contract_id])
-
-    # Calculate sprea_d by comparing lagged WAP with EWMA
-    count_er <- e_wrapper$da_ta$count_er[contract_id]
-    it <- (count_er - trade_params["lagg"])
-    ohlc_lag <- e_wrapper$da_ta$bar_data[[contract_id]][it, ]
-    sprea_d <- (if (ohlc_lag[7] > e_wrapper$da_ta$ewma[contract_id]) 0.25 else -0.25)
-
-    ## Write to console
-    bar_n <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]
-    # cat("model_fun limit sprea_d=", sprea_d, "\n")
-    cat(paste0("model_fun sprea_d=", sprea_d), paste0("ewma=", round(e_wrapper$da_ta$ewma[contract_id], 2)), paste0("lag_", e_wrapper$da_ta$col_names, "=", ohlc_lag), "\n")
-    cat(paste0("model_fun count_er=", count_er), paste0("vol=", round(e_wrapper$da_ta$vol[contract_id], 2)), paste0(e_wrapper$da_ta$col_names, "=", bar_n), "\n")
-
-    # Limit prices are the low and high prices of the lagged bar, plus the spreads
-    buy_limit <- (ohlc_lag[4] - trade_params["buy_spread"] + sprea_d)
-    sell_limit <- (ohlc_lag[3] + trade_params["sell_spread"] + sprea_d)
-
-    # buy_limit should be no greater than close price
-    clo_se <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, 5]
-    buy_limit <- min(clo_se, buy_limit)
-    # sell_limit should be no less than close price
-    sell_limit <- max(clo_se, sell_limit)
-
-    # cat("model_fun trade_params: ", trade_params, "\n")
-    if (IBrokers2::is.twsConnection(ib_connect)) {
-      # Execute buy limit order
-      buy_id <- IBrokers2::reqIds(ib_connect)
-      buy_order <- IBrokers2::twsOrder(buy_id, orderType="LMT",
-                                       lmtPrice=buy_limit, action="BUY", totalQuantity=trade_params["siz_e"])
-      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], buy_order)
-
-      # Execute sell limit order
-      sell_id <- IBrokers2::reqIds(ib_connect)
-      sell_order <- IBrokers2::twsOrder(sell_id, orderType="LMT",
-                                        lmtPrice=sell_limit, action="SELL", totalQuantity=trade_params["siz_e"])
-      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], sell_order)
-
-      e_wrapper$da_ta$trade_ids[contract_id, "buy_id"] <<- buy_id
-      e_wrapper$da_ta$trade_ids[contract_id, "sell_id"] <<- sell_id
-    } else {
-      # Write to file
-      cat("Buy limit:,", buy_limit, ",Sell limit:,", sell_limit, "\n", file=ib_connect, append=TRUE)
-    }  # end if
-    # cat("Buy limit order at: ", buy_limit, "\tSell limit order at: ", sell_limit, "\n")
-
-    invisible(list(buy_limit=buy_limit, sell_limit=sell_limit))
-  }  # end model_fun
-
-
   ## Define realtimeBars function inside the eWrapper environment
   # realtimeBars() processes a new bar of data and runs the model_fun()
   # realtimeBars() is called by processMsg() in a callback loop inside twsCALLBACK()
@@ -177,9 +113,11 @@ trade_wrapper <- function(ac_count,
       e_wrapper$da_ta$ewma[contract_id] <<- lamb_da*new_bar["WAP"] + (1-lamb_da)*e_wrapper$da_ta$ewma[contract_id]
 
       # wipp Download net position from IB
-      ib_account <- IBrokers2::reqAccountUpdates(conn=ib_connect, acctCode=e_wrapper$da_ta$ac_count)
-      e_wrapper$da_ta$position[contract_id] <- unlist(ib_account[[2]])["portfolioValue.position"]
-      cat("Net position from IB: ", e_wrapper$da_ta$position[contract_id], "\n")
+      if (IBrokers2::is.twsConnection(ib_connect)) {
+        ib_account <- IBrokers2::reqAccountUpdates(conn=ib_connect, acctCode=e_wrapper$da_ta$ac_count)
+        e_wrapper$da_ta$position[contract_id] <- unlist(ib_account[[2]])["portfolioValue.position"]
+        cat("Net position from IB: ", e_wrapper$da_ta$position[contract_id], "\n")
+      }  # end if
 
     }  # end if
 
@@ -206,6 +144,71 @@ trade_wrapper <- function(ac_count,
     # Return values
     c(curMsg, msg)
   }  # end realtimeBars
+
+
+  ## Define trading model function inside the eWrapper environment
+  # The function model_fun is called from inside realtimeBars()
+  e_wrapper$model_fun <- function(contract_id, trade_params, ib_connect) {
+    # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
+    # cat("model_fun count_er: ", e_wrapper$da_ta$count_er, "\n")
+    # Cancel previous trade orders
+    if (IBrokers2::is.twsConnection(ib_connect) &&
+        !is.na(e_wrapper$da_ta$trade_ids[contract_id, "buy_id"]) &&
+        !is.na(e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])) {
+      IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "buy_id"])
+      IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])
+    }  # end if
+
+    # scale the bia_s by the vol level - default is zero
+    # bia_s <- 0.25*trunc(e_wrapper$da_ta$fac_tor*e_wrapper$da_ta$vol[contract_id])
+
+    # Calculate bia_s by comparing the lagged WAP with EWMA
+    count_er <- e_wrapper$da_ta$count_er[contract_id]
+    it <- (count_er - trade_params["lagg"])
+    ohlc_lag <- e_wrapper$da_ta$bar_data[[contract_id]][it, ]
+    bia_s <- (if (ohlc_lag[7] > e_wrapper$da_ta$ewma[contract_id]) 0.25 else -0.25)
+
+    ## Write to console
+    bar_n <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]
+    # cat("model_fun limit bia_s=", bia_s, "\n")
+    cat(paste0("model_fun bia_s=", bia_s), paste0("ewma=", round(e_wrapper$da_ta$ewma[contract_id], 2)), paste0("lag_", e_wrapper$da_ta$col_names, "=", ohlc_lag), "\n")
+    cat(paste0("model_fun count_er=", count_er), paste0("vol=", round(e_wrapper$da_ta$vol[contract_id], 2)), paste0(e_wrapper$da_ta$col_names, "=", bar_n), "\n")
+
+    # Limit prices are the low and high prices of the lagged bar, plus the spreads
+    buy_limit <- (ohlc_lag[4] - trade_params["buy_spread"] + bia_s)
+    sell_limit <- (ohlc_lag[3] + trade_params["sell_spread"] + bia_s)
+
+    # buy_limit should be no greater than close price
+    clo_se <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, 5]
+    buy_limit <- min(clo_se, buy_limit)
+    # sell_limit should be no less than close price
+    sell_limit <- max(clo_se, sell_limit)
+
+    # cat("model_fun trade_params: ", trade_params, "\n")
+    if (IBrokers2::is.twsConnection(ib_connect)) {
+      # Execute buy limit order
+      buy_id <- IBrokers2::reqIds(ib_connect)
+      buy_order <- IBrokers2::twsOrder(buy_id, orderType="LMT",
+                                       lmtPrice=buy_limit, action="BUY", totalQuantity=trade_params["siz_e"])
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], buy_order)
+
+      # Execute sell limit order
+      sell_id <- IBrokers2::reqIds(ib_connect)
+      sell_order <- IBrokers2::twsOrder(sell_id, orderType="LMT",
+                                        lmtPrice=sell_limit, action="SELL", totalQuantity=trade_params["siz_e"])
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], sell_order)
+
+      e_wrapper$da_ta$trade_ids[contract_id, "buy_id"] <<- buy_id
+      e_wrapper$da_ta$trade_ids[contract_id, "sell_id"] <<- sell_id
+    } else {
+      # Backtest mode: write to file
+      cat("Buy limit:,", buy_limit, ",Sell limit:,", sell_limit, "\n", file=ib_connect, append=TRUE)
+      browser()
+    }  # end if
+    # cat("Buy limit order at: ", buy_limit, "\tSell limit order at: ", sell_limit, "\n")
+
+    invisible(list(buy_limit=buy_limit, sell_limit=sell_limit))
+  }  # end model_fun
 
   return(e_wrapper)
 }  # end trade_wrapper

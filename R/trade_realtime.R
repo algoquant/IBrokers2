@@ -123,7 +123,7 @@ trade_realtime <- function(ib_connect,
   }  # end if (!back_test)
 
   # Run callback function
-  CALLBACK(ib_connect, eWrapper=eventWrapper, timestamp=timeStamp, file=file, back_test=back_test, ...)
+  CALLBACK(ib_connect, e_wrapper=eventWrapper, timestamp=timeStamp, file=file, back_test=back_test, ...)
 }  # end trade_realtime
 
 
