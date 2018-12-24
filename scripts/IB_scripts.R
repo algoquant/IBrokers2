@@ -57,15 +57,15 @@ IBrokers2::twsDisconnect(ib_connect)
 
 
 # Define named lists for trading one contract
-con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"))
-con_tracts <- list(GBP=IBrokers2::twsFuture(symbol="GBP", exch="GLOBEX", expiry="201812"))
+con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201903"))
+con_tracts <- list(GBP=IBrokers2::twsFuture(symbol="GBP", exch="GLOBEX", expiry="201903"))
 trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.05))
 
 # Define named lists for trading one contract and saving the others
-con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"),
-                   QM=IBrokers2::twsFuture(symbol="QM", exch="NYMEX", expiry="201901"),
+con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201903"),
+                   QM=IBrokers2::twsFuture(symbol="QM", exch="NYMEX", expiry="201903"),
                    # GBP=IBrokers2::twsCurrency("GBP", currency="USD"),
-                   ZN=IBrokers2::twsFuture(symbol="ZN", exch="ECBOT", expiry="201812"))
+                   ZN=IBrokers2::twsFuture(symbol="ZN", exch="ECBOT", expiry="201903"))
 trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.05), QM=NA, ZN=NA)
 # trade_params <- list(ES=NA, QM=NA, GBP=c(buy_spread=0.001, sell_spread=0.001, siz_e=5e4, lagg=0, lamb_da=0.05), ZN=NA)
 
@@ -144,8 +144,8 @@ dygraphs::dygraph(price_s[, 1:4], main="OHLC prices") %>% dyCandlestick()
 ### Interactive Brokers using package IBrokers.
 
 
-con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201812"),
-                  tsy=IBrokers2::twsFuture(symbol="ZN",exch="ECBOT", expiry="201812"))
+con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201903"),
+                  tsy=IBrokers2::twsFuture(symbol="ZN",exch="ECBOT", expiry="201903"))
 
 # Open the file for storing the bar data
 data_dir <- "C:/Develop/data/ib_data"
@@ -172,10 +172,10 @@ colnames(price_s) <- c("Open", "High", "Low", "Close", "Volume")
 # Plot OHLC data in x11 window
 x11()
 chart_Series(x=price_s, TA="add_Vo()",
-             name="S&P500 ESZ8 futures")
+             name="S&P500 ESF9 futures")
 # Plot dygraph
 library(dygraphs)
-dygraphs::dygraph(price_s[, 1:4], main="S&P500 ESZ8 futures") %>%
+dygraphs::dygraph(price_s[, 1:4], main="S&P500 ESF9 futures") %>%
   dyCandlestick()
 
 
@@ -214,21 +214,21 @@ twsDisconnect(ib_connect)
 ###########
 ## Download raw data for replay, and then replay it
 
-# define S&P Emini futures December 2018 contract
+# define S&P Emini futures March 2019 contract
 snp_contract <- twsFuture(symbol="ES",
-  exch="GLOBEX", expiry="201812")
-# define VIX futures December 2018 contract
+  exch="GLOBEX", expiry="201903")
+# define VIX futures March 2019 contract
 vix_contract <- twsFuture(symbol="VIX",
-  local="VXZ8", exch="CFE", expiry="201812")
-# define 10yr Treasury futures December 2018 contract
+  local="VXZ8", exch="CFE", expiry="201903")
+# define 10yr Treasury futures March 2019 contract
 trs_contract <- twsFuture(symbol="ZN",
-  exch="ECBOT", expiry="201812")
-# define Emini gold futures December 2018 contract
+  exch="ECBOT", expiry="201903")
+# define Emini gold futures March 2019 contract
 gold_contract <- twsFuture(symbol="YG",
-  exch="NYSELIFFE", expiry="201812")
-# define euro currency future December 2018 contract
+  exch="NYSELIFFE", expiry="201903")
+# define euro currency future March 2019 contract
 euro_contract <- twsFuture(symbol="EUR",
-  exch="GLOBEX", expiry="201812")
+  exch="GLOBEX", expiry="201903")
 reqContractDetails(conn=ib_connect, Contract=euro_contract)
 
 # define data directory

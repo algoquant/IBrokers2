@@ -47,6 +47,9 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
++ [ ] In IB_scripts.R use limit order with GoodTillDate order expiration, instead of cancelling the order
+https://interactivebrokers.github.io/tws-api/classIBApi_1_1Order.html#a95539081751afb9980f4c6bd1655a6ba
+
 + [ ] In realtimeBars() calculate the trailing volatilities and z-scores
 
 + [ ] In trade_wrapper() add inventory limit: if inventory reaches its limit then stop placing orders in that direction
