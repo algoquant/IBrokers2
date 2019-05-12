@@ -47,6 +47,8 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
++ [ ] Add to vignette sections about trade_realtime() and call_back()
+
 + [ ] In IB_scripts.R use limit order with GoodTillDate order expiration, instead of cancelling the order
 https://interactivebrokers.github.io/tws-api/classIBApi_1_1Order.html#a95539081751afb9980f4c6bd1655a6ba
 

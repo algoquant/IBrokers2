@@ -27,7 +27,7 @@ The function *IBrokers::reqRealTimeBars()* collects real-time bar data (*OHLC* d
 
 The function *IBrokers::reqRealTimeBars()* calls *IBrokers::twsCALLBACK()*, which first creates an *eWrapper* environment by calling an *eWrapper* function, and then passes the *eWrapper* environment into *IBrokers::processMsg()* and calls it in a callback loop.  The function *IBrokers::processMsg()* calls the data handlers in the *eWrapper* environment to process and save each bar of the *OHLC* data.  This way the *eWrapper* environment created by *IBrokers2::trade_wrapper()* persists as a *mutable state* in the evaluation environment of the function *twsCALLBACK()*, in between bar data arrivals. 
 
-![](market_event_processing2.png){width="60%"}
+![](ib_trade_processing.png){width="60%"}
 
 
 The callback loop is performed inside the function *IBrokers::twsCALLBACK()*, by calling *IBrokers::processMsg()* in a loop, which in turn calls function *realtimeBars()* (defined inside *IBrokers2::trade_wrapper()*).  

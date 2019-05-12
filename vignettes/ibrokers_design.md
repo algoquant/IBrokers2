@@ -10,7 +10,7 @@ The function *IBrokers::reqRealTimeBars()* calls *IBrokers::twsCALLBACK()*, whic
 
 The function *IBrokers2::trade\_wrapper()* is an *eWrapper* function which is customized for trading. It creates an *eWrapper* environment, defines the member function *realtimeBars()*, and returns the *eWrapper* environment. The function *realtimeBars()* is where the trading code resides. The trading code updates a trading model with new data, runs the model, and then executed trades based on its output. The function *IBrokers2::trade\_wrapper()* is derived from the function *IBrokers::eWrapper.RealTimeBars.CSV()*.
 
-<img src="market_event_processing2.png" style="width:60.0%" />
+<img src="ib_trade_processing.png" style="width:60.0%" />
 
 An example of a simple trading strategy can be run with the code in the file *IB\_scripts.R* in the *scripts* sub-directory. The user can customize this strategy by modifying the trading code in *realtimeBars()*.
 

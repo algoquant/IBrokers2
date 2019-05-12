@@ -1,6 +1,6 @@
 ---
-title: "Executing Real-time Trading Strategies Via the API of Interactive Brokers"
-author: "Jerzy Pawlowski (algoquant)"
+title: Executing Real-time Trading Strategies Via the API of Interactive Brokers
+author: Jerzy Pawlowski (algoquant)
 tags: Interactive Brokers, API
 abstract: Executing real-time trading strategies Via the API of Interactive Brokers.
 output:
@@ -21,7 +21,7 @@ The function *IBrokers::reqRealTimeBars()* calls *IBrokers::twsCALLBACK()*, whic
 
 The function *IBrokers2::trade_wrapper()* is an *eWrapper* function which is customized for trading.  It creates an *eWrapper* environment, defines the member function *realtimeBars()*, and returns the *eWrapper* environment.  The function *realtimeBars()* is where the trading code resides.  The trading code updates a trading model with new data, runs the model, and then executed trades based on its output.  The function *IBrokers2::trade_wrapper()* is derived from the function *IBrokers::eWrapper.RealTimeBars.CSV()*.
 
-![](market_event_processing2.png){width="60%"}
+![](ib_trade_processing.png){width="60%"}
 
 An example of a simple trading strategy can be run with the code in the file *IB_scripts.R* in the *scripts* sub-directory.  The user can customize this strategy by modifying the trading code in *realtimeBars()*.
 
