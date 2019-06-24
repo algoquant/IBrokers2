@@ -52,6 +52,7 @@ call_back <- function(ib_connect, e_wrapper, timestamp, file, back_test=FALSE, s
         if (!socketSelect(list(sock_et), FALSE, 0.25))
           next
         curMsg <- readBin(sock_et, "character", 1L)
+        # cat("curMsg = ", curMsg, "\n")
         # Process the message
         if (!is.null(timestamp)) {
           processMsg(curMsg, sock_et, e_wrapper, format(Sys.time(), timestamp), file, ib_connect, ...)

@@ -57,17 +57,18 @@ IBrokers2::twsDisconnect(ib_connect)
 
 
 # Define named lists for trading one contract
-con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201903"))
-con_tracts <- list(GBP=IBrokers2::twsFuture(symbol="GBP", exch="GLOBEX", expiry="201903"))
+con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201909"))
+con_tracts <- list(GBP=IBrokers2::twsFuture(symbol="GBP", exch="GLOBEX", expiry="201909"))
 trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.05))
 
 # Define named lists for trading one contract and saving the others
-con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201903"),
-                   QM=IBrokers2::twsFuture(symbol="QM", exch="NYMEX", expiry="201903"),
+con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201909"),
+                   QM=IBrokers2::twsFuture(symbol="QM", exch="NYMEX", expiry="201909"),
                    # GBP=IBrokers2::twsCurrency("GBP", currency="USD"),
-                   ZN=IBrokers2::twsFuture(symbol="ZN", exch="ECBOT", expiry="201903"))
-trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.05), QM=NA, ZN=NA)
-# trade_params <- list(ES=NA, QM=NA, GBP=c(buy_spread=0.001, sell_spread=0.001, siz_e=5e4, lagg=0, lamb_da=0.05), ZN=NA)
+                   ZN=IBrokers2::twsFuture(symbol="ZN", exch="ECBOT", expiry="201909"))
+trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.05),
+                     QM=NULL, ZN=NULL)
+# trade_params <- list(ES=NULL, QM=NULL, GBP=c(buy_spread=0.001, sell_spread=0.001, siz_e=5e4, lagg=0, lamb_da=0.05), ZN=NULL)
 
 
 # The simple market-making strategy is defined as follows:
@@ -123,7 +124,6 @@ IBrokers2::twsDisconnect(ib_connect)
 
 # Close data files
 for (file_connect in file_connects) close(file_connect)
-close(ib_connect)
 
 
 # IBrokers2::reqOpenOrders(ib_connect)
@@ -144,8 +144,8 @@ dygraphs::dygraph(price_s[, 1:4], main="OHLC prices") %>% dyCandlestick()
 ### Interactive Brokers using package IBrokers.
 
 
-con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201903"),
-                  tsy=IBrokers2::twsFuture(symbol="ZN",exch="ECBOT", expiry="201903"))
+con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201909"),
+                  tsy=IBrokers2::twsFuture(symbol="ZN",exch="ECBOT", expiry="201909"))
 
 # Open the file for storing the bar data
 data_dir <- "C:/Develop/data/ib_data"
@@ -216,19 +216,19 @@ twsDisconnect(ib_connect)
 
 # define S&P Emini futures March 2019 contract
 snp_contract <- twsFuture(symbol="ES",
-  exch="GLOBEX", expiry="201903")
+  exch="GLOBEX", expiry="201909")
 # define VIX futures March 2019 contract
 vix_contract <- twsFuture(symbol="VIX",
-  local="VXZ8", exch="CFE", expiry="201903")
+  local="VXZ8", exch="CFE", expiry="201909")
 # define 10yr Treasury futures March 2019 contract
 trs_contract <- twsFuture(symbol="ZN",
-  exch="ECBOT", expiry="201903")
+  exch="ECBOT", expiry="201909")
 # define Emini gold futures March 2019 contract
 gold_contract <- twsFuture(symbol="YG",
-  exch="NYSELIFFE", expiry="201903")
+  exch="NYSELIFFE", expiry="201909")
 # define euro currency future March 2019 contract
 euro_contract <- twsFuture(symbol="EUR",
-  exch="GLOBEX", expiry="201903")
+  exch="GLOBEX", expiry="201909")
 reqContractDetails(conn=ib_connect, Contract=euro_contract)
 
 # define data directory

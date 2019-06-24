@@ -208,6 +208,8 @@ processMsg <- function(curMsg, con, eWrapper, timestamp, file, twsconn, ...) {
     eWrapper$currentTime(curMsg, msg, timestamp, file, ...)
   } else
   if(curMsg == .twsIncomingMSG$REAL_TIME_BARS) {
+    # browser()
+    # cat("Reading bar of data, curMsg = ", curMsg, "\n")
     msg <- readBin(con, "character", 10)
     eWrapper$realtimeBars(curMsg, msg, timestamp, file, twsconn, ...)
   } else

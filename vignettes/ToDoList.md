@@ -30,32 +30,48 @@ Build vignette package reference manual from *.Rd files
 
 ### Comments and package analysis
 
-# The numeric IB TWS message codes are stored as named lists:
++ The parameter trade_params is passed into the function e_wrapper$model_fun(), and it isn't used outside it  
+
++ Currently the design of e_wrapper$realtimeBars() only allows to trade a single instrument at a time
+
++ The numeric IB API message codes are stored as named lists:
 IBrokers::.twsIncomingMSG
 IBrokers::.twsOutgoingMSG
+
++ In e_wrapper$realtimeBars(), when would this ever be true: is.null(trade_params) ?  Why is it needed?
+Answer: It is true for instruments which aren't traded, because they have trade_params equal to NULL
+
 
 
 ### Notes
 
-+ [ ] Open IB demo account
++ [ ] How to open IB demo account
 https://www.interactivebrokers.com/en/index.php?f=1286
 
-+ [ ] Trade IB using Python  configure IB account
++ [ ] How to trade IB using Python configure IB account
 https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 
 
 ### tasks to-do
 
-+ [ ] Add to vignette sections about trade_realtime() and call_back()
++ [x] In e_wrapper, call model_fun() using indirection using the name of the model function from the list trade_params
+Add the name of the model function to the list trade_params.
 
-+ [ ] In IB_scripts.R use limit order with GoodTillDate order expiration, instead of cancelling the order
++ [ ] Create vignette for package IBrokers2  
+
++ [ ] Add software disclaimer
+
++ [ ] Modify the function e_wrapper$realtimeBars() to be able to trade several instruments simultaneously  
+The function e_wrapper$model_fun() would require access to the trade_params parameter of several instruments.
+
++ [ ] In trade_wrapper() add limit on position inventory: if inventory reaches its limit then stop placing orders in that direction
+Add lim_it to the list trade_params in trade_wrapper().
+
++ [ ] In realtimeBars() calculate the trailing VWAP, volatilities, and z-scores
+
++ [ ] In IB_scripts.R use limit order with GoodTillDate order expiration, instead of canceling the order
 https://interactivebrokers.github.io/tws-api/classIBApi_1_1Order.html#a95539081751afb9980f4c6bd1655a6ba
-
-+ [ ] In realtimeBars() calculate the trailing volatilities and z-scores
-
-+ [ ] In trade_wrapper() add inventory limit: if inventory reaches its limit then stop placing orders in that direction
-Add invent_limit to argument trade_params in trade_wrapper().
 
 + [ ] Create a clone of reqOpenOrders() called get_open_orders() to write to data buffer
 
@@ -76,6 +92,18 @@ function(twsconn) {
     processMsg(curMsg, con, eW)
   }
 }
+
++ [ ] Find out how to book iBrokers trades in different models (portfolios)
+https://www.interactivebrokers.com/en/software/tws/usersguidebook/modelportfolios/createmodel.htm
+
++ [ ] Adapt from IB script using R6Class: C:/Develop/R/IBrokers2/scripts/TWS Kovalevsky.R
+
++ [ ] Demonstrate how to use iBrokers data playback replay feature
+The script added to data_management.Rnw downloads the raw data, but doesn't replay the bar data properly.
+https://offerm.wordpress.com/2015/05/21/market-data-recording-and-playback-with-ibrokers-and-r-2/
+
++ [ ] Adapt from: downloading raw market data using IBrokers::reqMktData() without eventWrapper
+https://stat.ethz.ch/pipermail/r-sig-finance/2011q3/008232.html
 
 + [ ] Print to console status of the eWrapper data buffer
 
@@ -158,6 +186,17 @@ https://www.santoshsrinivas.com/amicable-interactive-data-analysis-using-pythoth
 
 
 ### tasks finished
+
++ [x] In e_wrapper$model_fun() introduce position limits using e_wrapper$da_ta$position[contract_id]
+Add position limit to the list trade_params.
+
++ [x] Remove old file eWrapper_trading.R (old version of trade_wrapper.R)  
+
++ [x] In e_wrapper$realtimeBars(), update EWMA and volatility for all instruments, even for non-traded instruments
+
++ [x] Set trade_params to NULL for non-traded instruments, instead of NA
+
++ [x] Fix bug in e_wrapper$realtimeBars: catch case when ib_account is NULL, for example at initial state when there are no positions  
 
 + [x] In trade_wrapper(), rename variable sprea_d to bia_s
 
