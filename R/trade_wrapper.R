@@ -29,12 +29,13 @@ trade_wrapper <- function(ac_count,
     e_wrapper$da_ta$name_s <- name_s
     # count_er for counting number of bars collected for each contract
     e_wrapper$da_ta$count_er <- integer(n_contracts)
+    # Matrix of portfolio information
+    e_wrapper$da_ta$portfolio <- matrix(numeric(3*n_contracts), ncol=3)
+    colnames(e_wrapper$da_ta$portfolio) <- c("position", "pnl_realized", "pnl_unrealized")
     # Vector of volatilities, one for each contract
     e_wrapper$da_ta$vol <- numeric(n_contracts)
     # Vector of EWMAs, one for each contract
     e_wrapper$da_ta$ewma <- numeric(n_contracts)
-    # Vector of net positions, one for each contract
-    e_wrapper$da_ta$position <- integer(n_contracts)
     # Vector of open orders, one for each contract
     e_wrapper$da_ta$open_orders <- integer(n_contracts)
     # e_wrapper$da_ta$beta <- numeric(1)
@@ -86,12 +87,14 @@ trade_wrapper <- function(ac_count,
 
 
   ## Define function realtimeBars inside the eWrapper environment
-  # realtimeBars() processes a new bar of data and runs the model_fun()
+  # realtimeBars() processes a new bar of data and runs the model_function()
   # realtimeBars() is called by processMsg() in a callback loop inside twsCALLBACK()
   e_wrapper$realtimeBars <- function(curMsg, msg, timestamp, file, ib_connect, ...) {
-    cat("realtimeBars count_er: ", e_wrapper$da_ta$count_er, "\n")
+    # cat("realtimeBars count_er=", e_wrapper$da_ta$count_er, "\n")
+    # browser()
     # Unwrap new bar of data in msg passed from processMsg()
     bar_new <- as.numeric(msg)
+    names(bar_new) <- c("some_id", "contract_id", e_wrapper$da_ta$col_names)
     # cat("realtimeBars col_names: ", col_names, "\n")
     # cat("realtimeBars n_cols: ", n_cols, "\n")
     # col_index <- (3:(e_wrapper$da_ta$n_cols+2))
@@ -100,6 +103,11 @@ trade_wrapper <- function(ac_count,
     trade_params <- e_wrapper$da_ta$trade_params[[contract_id]]
     # If trade_params is not NULL then trade that instrument
     trade_it <- !is.null(trade_params)
+    if (trade_it) {
+      # model_function <- match.fun("make_markets")
+      model_function <- trade_params[[1]]
+      trade_params <- trade_params[[2]]
+    }  # end if
     # e_wrapper$as_sign("count_er", e_wrapper$ge_t("count_er")+1)
     # Advancce the bar count_er
     count_er <- e_wrapper$da_ta$count_er[contract_id] + 1
@@ -108,24 +116,32 @@ trade_wrapper <- function(ac_count,
     # cat("realtimeBars bar_new: ", bar_new, "\n")
     # cat("realtimeBars: ", e_wrapper$ge_t("count_er"), "\n")
     # Copy new bar of data into buffer
+    # browser()
     e_wrapper$da_ta$bar_data[[contract_id]][count_er, ] <<- bar_new[e_wrapper$da_ta$col_index]
     # cat("realtimeBars: ", e_wrapper$da_ta$name_s[contract_id], " vol: ", e_wrapper$da_ta$vol[contract_id], "\n")
 
     ## Update EWMA and volatility
-    # if (count_er>1) {lamb_da <- trade_params["lamb_da"]} else {lamb_da <- 1}
-    lamb_da <- (count_er>1)*trade_params["lamb_da"] + (count_er<1)
-    e_wrapper$da_ta$vol[contract_id] <<- lamb_da*(bar_new["High"]-bar_new["Low"]) + (1-lamb_da)*e_wrapper$da_ta$vol[contract_id]
-    e_wrapper$da_ta$ewma[contract_id] <<- lamb_da*bar_new["WAP"] + (1-lamb_da)*e_wrapper$da_ta$ewma[contract_id]
+    lamb_da <- trade_params["lamb_da"]
+    if (trade_it && (count_er > 3)) {
+      e_wrapper$da_ta$vol[contract_id] <<- lamb_da*(bar_new["High"]-bar_new["Low"]) + (1-lamb_da)*e_wrapper$da_ta$vol[contract_id]
+      e_wrapper$da_ta$ewma[contract_id] <<- lamb_da*bar_new["WAP"] + (1-lamb_da)*e_wrapper$da_ta$ewma[contract_id]
+    } else {
+      e_wrapper$da_ta$vol[contract_id] <<- (bar_new["High"]-bar_new["Low"])
+      e_wrapper$da_ta$ewma[contract_id] <<- bar_new["WAP"]
+    }  # end if
 
-    ## Download net positions from IB for trading instrument
+    ## Download from IB portfolio information: net positions, pnls
     if (trade_it && IBrokers2::is.twsConnection(ib_connect)) {
-        # browser()
         ib_account <- IBrokers2::reqAccountUpdates(conn=ib_connect, acctCode=e_wrapper$da_ta$ac_count)
-        if (is.null(ib_account))
-          e_wrapper$da_ta$position[contract_id] <- 0
-        else
-          e_wrapper$da_ta$position[contract_id] <- unlist(ib_account[[2]])["portfolioValue.position"]
-        cat("Net position from IB: ", e_wrapper$da_ta$position[contract_id], "\n")
+        if (!is.null(ib_account)) {
+          port_folio <- unlist(ib_account[[2]])
+          e_wrapper$da_ta$portfolio[contract_id, "position"] <- port_folio["portfolioValue.position"]
+          e_wrapper$da_ta$portfolio[contract_id, "pnl_realized"] <- port_folio["portfolioValue.realizedPNL"]
+          e_wrapper$da_ta$portfolio[contract_id, "pnl_unrealized"] <- port_folio["portfolioValue.unrealizedPNL"]
+        }  # end if
+        cat("Portfolio information from IB, position: ", e_wrapper$da_ta$portfolio[contract_id, "position"],
+            "\t realized pnl: ", e_wrapper$da_ta$portfolio[contract_id, "pnl_realized"],
+            "\t unrealized pnl: ", e_wrapper$da_ta$portfolio[contract_id, "pnl_unrealized"], "\n")
       }  # end if
 
     ## Write bar data to file
@@ -147,46 +163,45 @@ trade_wrapper <- function(ac_count,
 
     ## Run the trading model for the trading instrument
     if (trade_it && (count_er > e_wrapper$da_ta$warm_up))
-      e_wrapper$model_fun(contract_id, trade_params, ib_connect)
+      # make_markets(contract_id, trade_params, ib_connect)
+      do.call(model_function, list(contract_id, trade_params, ib_connect))
     # Return values
     c(curMsg, msg)
   }  # end realtimeBars
 
 
-  ## Define trading model function inside the eWrapper environment
-  # The function model_fun is called from inside realtimeBars()
-  e_wrapper$model_fun <- function(contract_id, trade_params, ib_connect) {
-    # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
-    # cat("model_fun count_er: ", e_wrapper$da_ta$count_er, "\n")
-    # browser()
+  ## Define trading model functions inside the eWrapper environment
+  # The trading model functions are called by realtimeBars()
 
-    ## Cancel previous trade orders
-    if (IBrokers2::is.twsConnection(ib_connect)) {
-      if (!is.na(e_wrapper$da_ta$trade_ids[contract_id, "buy_id"]))
-        IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "buy_id"])
-      if (!is.na(e_wrapper$da_ta$trade_ids[contract_id, "sell_id"]))
-        IBrokers2::cancelOrder(ib_connect, e_wrapper$da_ta$trade_ids[contract_id, "sell_id"])
-    }  # end if
+  ### The function make_markets() performs a market making strategy by
+  # executing limit orders on a single instrument, with position limits.
+  make_markets <- function(contract_id, trade_params, ib_connect) {
+    # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
+    # cat("make_markets count_er: ", e_wrapper$da_ta$count_er, "\n")
+    # browser()
 
     ## Extract bars of prices from da_ta$bar_data
     count_er <- e_wrapper$da_ta$count_er[contract_id]
     # it <- (count_er - trade_params["lagg"])
     bar_new <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]
     bar_lag <- e_wrapper$da_ta$bar_data[[contract_id]][count_er - trade_params["lagg"], ]
+    # browser()
 
     ## Write to console
-    cat(paste0("model_fun count_er=", count_er), paste0("vol=", round(e_wrapper$da_ta$vol[contract_id], 2)), paste0(e_wrapper$da_ta$col_names, "=", bar_new), "\n")
+    cat(paste0("make_markets count_er=", count_er), "\n", "bar data: \t", paste0(names(bar_new), "=", bar_new), "\n")
+    cat("technical data: \t", paste0("vol=", round(e_wrapper$da_ta$vol[contract_id], 2)), paste0("ewma=", round(e_wrapper$da_ta$ewma[contract_id], 2)), "\n")
 
     ## Experimental code - turned off for now
     # Calculate the trade price bia_s by comparing the lagged WAP with EWMA
     # scale the bia_s by the vol level - default is zero
     # bia_s <- 0.25*trunc(e_wrapper$da_ta$fac_tor*e_wrapper$da_ta$vol[contract_id])
     # bia_s <- (if (bar_lag[7] > e_wrapper$da_ta$ewma[contract_id]) 0.25 else -0.25)
+    ## End experimental code - turned off for now
     bia_s <- 0
-    # cat("model_fun limit bia_s=", bia_s, "\n")
-    # cat(paste0("model_fun bia_s=", bia_s), paste0("ewma=", round(e_wrapper$da_ta$ewma[contract_id], 2)), paste0("lag_", e_wrapper$da_ta$col_names, "=", bar_lag), "\n")
+    # cat("make_markets limit bia_s=", bia_s, "\n")
+    # cat(paste0("make_markets bia_s=", bia_s), paste0("ewma=", round(e_wrapper$da_ta$ewma[contract_id], 2)), paste0("lag_", e_wrapper$da_ta$col_names, "=", bar_lag), "\n")
 
-    ## Calculate the trade prices
+    ## Calculate the trade limit prices
     # Limit prices are the low and high prices of the lagged bar, plus the spreads
     buy_limit <- (bar_lag[4] - trade_params["buy_spread"] + bia_s)
     sell_limit <- (bar_lag[3] + trade_params["sell_spread"] + bia_s)
@@ -197,23 +212,37 @@ trade_wrapper <- function(ac_count,
     # sell_limit should be no less than close price
     sell_limit <- max(clo_se, sell_limit)
 
-    ## Place orders
-    # cat("model_fun trade_params: ", trade_params, "\n")
+    ## Cancel previous limit orders
     if (IBrokers2::is.twsConnection(ib_connect)) {
-      # Execute buy limit order only if position doesn't exceed limit
-      if (e_wrapper$da_ta$position[contract_id] < trade_params["pos_limit"]) {
+      buy_id <- e_wrapper$da_ta$trade_ids[contract_id, "buy_id"]
+      if (!is.na(buy_id))
+        IBrokers2::cancelOrder(ib_connect, buy_id)
+      sell_id <- e_wrapper$da_ta$trade_ids[contract_id, "sell_id"]
+      if (!is.na(sell_id))
+        IBrokers2::cancelOrder(ib_connect, sell_id)
+    }  # end if
+
+    ## Place new limit orders
+    # cat("make_markets trade_params: ", trade_params, "\n")
+    if (IBrokers2::is.twsConnection(ib_connect)) {
+      # Live trading mode
+      posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
+      # Place buy limit order only if position doesn't exceed limit
+      if (posi_tion < trade_params["pos_limit"]) {
         buy_id <- IBrokers2::reqIds(ib_connect)
         buy_order <- IBrokers2::twsOrder(buy_id, orderType="LMT",
-                                         lmtPrice=buy_limit, action="BUY", totalQuantity=trade_params["siz_e"])
+                                         lmtPrice=buy_limit, action="BUY",
+                                         totalQuantity=trade_params["siz_e"])
         IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], buy_order)
         e_wrapper$da_ta$trade_ids[contract_id, "buy_id"] <<- buy_id
       }  # end if
 
-      # Execute sell limit order only if position doesn't exceed limit
-      if (e_wrapper$da_ta$position[contract_id] > -trade_params["pos_limit"]) {
+      # Place sell limit order only if position doesn't exceed limit
+      if (posi_tion > -trade_params["pos_limit"]) {
         sell_id <- IBrokers2::reqIds(ib_connect)
         sell_order <- IBrokers2::twsOrder(sell_id, orderType="LMT",
-                                          lmtPrice=sell_limit, action="SELL", totalQuantity=trade_params["siz_e"])
+                                          lmtPrice=sell_limit, action="SELL",
+                                          totalQuantity=trade_params["siz_e"])
         IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], sell_order)
         e_wrapper$da_ta$trade_ids[contract_id, "sell_id"] <<- sell_id
       }  # end if
@@ -226,11 +255,165 @@ trade_wrapper <- function(ac_count,
     # cat("Buy limit order at: ", buy_limit, "\tSell limit order at: ", sell_limit, "\n")
 
     invisible(list(buy_limit=buy_limit, sell_limit=sell_limit))
-  }  # end model_fun
+  }  # end make_markets
+
+
+  ### The function crossover_strat() performs an EWMA crossover strategy by
+  # executing market orders on a single instrument
+  crossover_strat <- function(contract_id, trade_params, ib_connect) {
+    # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
+    # cat("crossover_strat count_er: ", e_wrapper$da_ta$count_er, "\n")
+    # browser()
+
+    ## Extract bars of prices from da_ta$bar_data
+    count_er <- e_wrapper$da_ta$count_er[contract_id]
+    # it <- (count_er - trade_params["lagg"])
+    bar_new <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]
+    # bar_lag <- e_wrapper$da_ta$bar_data[[contract_id]][count_er - trade_params["lagg"], ]
+    # browser()
+
+    ## Write to console
+    ew_ma <- e_wrapper$da_ta$ewma[contract_id]
+    w_ap <- bar_new[7]
+    cat(paste0("crossover_strat count_er=", count_er), "\n", "bar data: \t", paste0(names(bar_new), "=", bar_new), "\n")
+    cat("technical data: \t", paste0("WAP=", round(w_ap, 2)), paste0("EWMA=", round(ew_ma, 2)), "\n")
+
+    ## Place market orders
+    # cat("crossover_strat trade_params: ", trade_params, "\n")
+    if (IBrokers2::is.twsConnection(ib_connect)) {
+      # Live trading mode
+      posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
+      is_contrarian <- trade_params["is_contrarian"]
+      if (is_contrarian) {
+        if ((w_ap > ew_ma) & (posi_tion > 0)) {
+          # Place buy market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=trade_params["siz_e"])
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+        } else if ((w_ap < ew_ma) & (posi_tion < 0)) {
+          # Place sell market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=trade_params["siz_e"])
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+        }  # end if
+      } else {
+        if ((w_ap > ew_ma) & (posi_tion < 0)) {
+          # Place buy market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=trade_params["siz_e"])
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+        } else if ((w_ap < ew_ma) & (posi_tion > 0)) {
+          # Place sell market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=trade_params["siz_e"])
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+        }  # end if
+      }  # end if is_contrarian
+
+    } else {
+      # Backtest mode: write to file
+      cat("Buy limit:,", buy_limit, ",Sell limit:,", sell_limit, "\n", file=ib_connect, append=TRUE)
+      browser()
+    }  # end if
+    # cat("Buy limit order at: ", buy_limit, "\tSell limit order at: ", sell_limit, "\n")
+
+    invisible(list(WAP=w_ap, EWMA=ew_ma))
+  }  # end crossover_strat
+
+
+
+  ### The function pairs_strat() performs a pairs trading strategy
+  # by executing market orders for a pair of instruments
+  pairs_strat <- function(contract_id, trade_params, ib_connect) {
+    # if (!IBrokers2::isConnected(ib_connect)) {ib_connect <- IBrokers2::twsConnect(port=7497) ; cat("reconnected")}
+    # cat("pairs_strat count_er: ", e_wrapper$da_ta$count_er, "\n")
+    # browser()
+
+    look_back <- trade_params["look_back"]
+    thresh_old <- trade_params["thresh_old"]
+    posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
+    siz_e <- trade_params["siz_e"]
+    is_contrarian <- trade_params["is_contrarian"]
+    ## Extract bars of prices from da_ta$bar_data
+    count_er <- e_wrapper$da_ta$count_er[contract_id]
+    # it <- (count_er - trade_params["lagg"])
+    bar_new <- e_wrapper$da_ta$bar_data[[contract_id]][((count_er-look_back+1):count_er), ]
+    bar_ref <- e_wrapper$da_ta$bar_data[[2]][((count_er-look_back+1):count_er), ]
+
+    ## Perform regression in C++
+    de_sign <- cbind(bar_new[, 7], bar_ref[, 7])
+    de_sign <- na.omit(de_sign)
+    colnames(de_sign) <- e_wrapper$da_ta$name_s
+    l_m <- HighFreq::calc_lm(de_sign[, 1], de_sign[, 2, drop=FALSE])
+    co_eff <- l_m$coefficients[2, 1]
+    z_score <- l_m$z_score
+
+    ## Write to console
+    ew_ma <- e_wrapper$da_ta$ewma[contract_id]
+    w_ap <- bar_new[NROW(bar_new), 7]
+    # cat(paste0("pairs_strat count_er=", count_er), "\n", "bar data: \t", last(bar_new), "\n")
+    # cat(paste0("pairs_strat count_er=", count_er), "\n", "bar data: \t", last(bar_ref), "\n")
+    cat("technical data: \t", paste0("coeff=", round(co_eff, 2)), paste0("z-score=", round(z_score, 2)), "\n")
+    # cat("technical data: \t", paste0("WAP=", round(w_ap, 2)), paste0("EWMA=", round(ew_ma, 2)), "\n")
+
+
+    ## Place market orders
+    # cat("pairs_strat trade_params: ", trade_params, "\n")
+    if (IBrokers2::is.twsConnection(ib_connect)) {
+      # Live trading mode
+      # browser()
+      n_shares <- round(co_eff*siz_e)
+      if (is_contrarian) {
+        if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion > 0)) {
+          # Place buy market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=n_shares)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+        } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion < 0)) {
+          # Place sell market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=n_shares)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+        }  # end if
+      } else {
+        if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion > 0)) {
+          # Place buy market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=n_shares)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+        } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion < 0)) {
+          # Place sell market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=n_shares)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+        }  # end if
+      }  # end if is_contrarian
+
+    } else {
+      # Backtest mode: write to file
+      cat("Buy limit:,", buy_limit, ",Sell limit:,", sell_limit, "\n", file=ib_connect, append=TRUE)
+      browser()
+    }  # end if
+    # cat("Buy limit order at: ", buy_limit, "\tSell limit order at: ", sell_limit, "\n")
+
+    invisible(list(co_eff=co_eff, z_score=z_score))
+  }  # end pairs_strat
+
 
   return(e_wrapper)
 }  # end trade_wrapper
-
 
 
 

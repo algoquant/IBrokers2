@@ -22,7 +22,7 @@ library(IBrokers2)
 # Open the IB connection
 ib_connect <- IBrokers2::twsConnect(port=7497)
 # Download account information from IB
-ib_account <- IBrokers::reqAccountUpdates(conn=ib_connect, acctCode="DI1207807")
+ib_account <- IBrokers::reqAccountUpdates(conn=ib_connect, acctCode="DU1851021")
 # Extract account balances
 balance_s <- ib_account[[1]]
 balance_s$AvailableFunds
@@ -36,9 +36,9 @@ file_names <- file.path(data_dir, "acct_info.txt")
 file_connects <- file(file_names, open="w")
 # file_connects <- lapply(file_names, function(file_name) file(file_name, open="w"))
 
-foo <- IBrokers2::get_account(ib_connect=ib_connect, acctCode="DI1207807", file_connects=file_connects)
+foo <- IBrokers2::get_account(ib_connect=ib_connect, acctCode="DU1851021", file_connects=file_connects)
 
-ib_account <- IBrokers::.reqAccountUpdates(conn=ib_connect, subscribe=TRUE, acctCode="DI1207807")
+ib_account <- IBrokers::.reqAccountUpdates(conn=ib_connect, subscribe=TRUE, acctCode="DU1851021")
 
 # Doesn't work
 # foo <- IBrokers2::reqExecutions(twsconn=ib_connect, ExecutionFilter=twsExecutionFilter)
@@ -99,7 +99,7 @@ IBrokers2::trade_realtime(ib_connect=ib_connect,
                           Contract=con_tracts,
                           useRTH=FALSE,
                           back_test=FALSE,
-                          eventWrapper=IBrokers2::trade_wrapper(ac_count="DI1207807",
+                          eventWrapper=IBrokers2::trade_wrapper(ac_count="DU1851021",
                                                                 con_tracts=con_tracts,
                                                                 trade_params=trade_params,
                                                                 file_connects=file_connects,
@@ -145,7 +145,7 @@ dygraphs::dygraph(price_s[, 1:4], main="OHLC prices") %>% dyCandlestick()
 
 
 con_tracts <- list(es=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201909"),
-                  tsy=IBrokers2::twsFuture(symbol="ZN",exch="ECBOT", expiry="201909"))
+                   tsy=IBrokers2::twsFuture(symbol="ZN",exch="ECBOT", expiry="201909"))
 
 # Open the file for storing the bar data
 data_dir <- "C:/Develop/data/ib_data"

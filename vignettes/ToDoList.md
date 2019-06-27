@@ -30,13 +30,15 @@ Build vignette package reference manual from *.Rd files
 
 ### Comments and package analysis
 
-+ The parameter trade_params is passed into the function e_wrapper$model_fun(), and it isn't used outside it  
++ The function .trade_realtime() performs a loop requesting real time bars for all instruments.  
 
-+ Currently the design of e_wrapper$realtimeBars() only allows to trade a single instrument at a time
++ The parameter trade_params is passed into the function e_wrapper$model_fun(), and it isn't used outside it.  
+
++ Currently the design of e_wrapper$realtimeBars() only allows to trade a single instrument at a time.  
 
 + The numeric IB API message codes are stored as named lists:
-IBrokers::.twsIncomingMSG
-IBrokers::.twsOutgoingMSG
+IBrokers2::.twsIncomingMSG
+IBrokers2::.twsOutgoingMSG
 
 + In e_wrapper$realtimeBars(), when would this ever be true: is.null(trade_params) ?  Why is it needed?
 Answer: It is true for instruments which aren't traded, because they have trade_params equal to NULL
@@ -55,43 +57,24 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 ### tasks to-do
 
-+ [x] In e_wrapper, call model_fun() using indirection using the name of the model function from the list trade_params
-Add the name of the model function to the list trade_params.
-
 + [ ] Create vignette for package IBrokers2  
 
 + [ ] Add software disclaimer
 
-+ [ ] Modify the function e_wrapper$realtimeBars() to be able to trade several instruments simultaneously  
-The function e_wrapper$model_fun() would require access to the trade_params parameter of several instruments.
-
-+ [ ] In trade_wrapper() add limit on position inventory: if inventory reaches its limit then stop placing orders in that direction
-Add lim_it to the list trade_params in trade_wrapper().
-
 + [ ] In realtimeBars() calculate the trailing VWAP, volatilities, and z-scores
 
-+ [ ] In IB_scripts.R use limit order with GoodTillDate order expiration, instead of canceling the order
-https://interactivebrokers.github.io/tws-api/classIBApi_1_1Order.html#a95539081751afb9980f4c6bd1655a6ba
-
-+ [ ] Create a clone of reqOpenOrders() called get_open_orders() to write to data buffer
++ [ ] Modify the function e_wrapper$realtimeBars() to be able to trade several instruments simultaneously  
+The function e_wrapper$model_fun() would require access to the trade_params parameter of several instruments.
 
 + [ ] In realtimeBars() check for trade status using reqOpenOrders() instead of copying tradeID
 https://stackoverflow.com/questions/34703679/r-ibrokers-reqopenorders-hangs
 
-+ [ ] In create_ewrapper() modify the handlers openOrder() and openOrderEnd() for reqExecutions and reqOpenOrders
++ [ ] In create_ewrapper() modify the handlers openOrder() and openOrderEnd() for reqExecutions() and reqOpenOrders()
 
-+ [ ] Load into eWrapper buffer the state variables: size of open orders, positions, cumulative PnL
-IBrokers2::reqOpenOrders
-function(twsconn) {
-  .reqOpenOrders(twsconn)
-  con <- twsconn[[1]]
-  eW  <- eWrapper()
-  while(TRUE) {
-    socketSelect(list(con), FALSE, NULL)
-    curMsg <- readBin(con, character(), 1L)
-    processMsg(curMsg, con, eW)
-  }
-}
++ [ ] In IB_scripts.R use limit order with GoodTillDate order expiration, instead of canceling the order
+https://interactivebrokers.github.io/tws-api/classIBApi_1_1Order.html#a95539081751afb9980f4c6bd1655a6ba
+
++ [ ] Create a clone of reqOpenOrders() called get_open_orders() to write to data buffer - reqOpenOrders() doesn't work, just runs in endless loop
 
 + [ ] Find out how to book iBrokers trades in different models (portfolios)
 https://www.interactivebrokers.com/en/software/tws/usersguidebook/modelportfolios/createmodel.htm
@@ -187,7 +170,13 @@ https://www.santoshsrinivas.com/amicable-interactive-data-analysis-using-pythoth
 
 ### tasks finished
 
-+ [x] In e_wrapper$model_fun() introduce position limits using e_wrapper$da_ta$position[contract_id]
++ [x] In realtimeBars() download from IB portfolio information: net positions, pnls
+
++ [x] In e_wrapper$realtimeBars(), call the model function using indirection with the name of the model function from the list trade_params
+Add the name of the model function to the list trade_params.
+
++ [x] In trade_wrapper() add limits on position inventory: if inventory reaches its limit then stop placing orders in that direction
+Using e_wrapper$da_ta$position[contract_id].
 Add position limit to the list trade_params.
 
 + [x] Remove old file eWrapper_trading.R (old version of trade_wrapper.R)  
