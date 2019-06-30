@@ -61,7 +61,12 @@ https://medium.com/auquan/algorithmic-trading-system-development-1a5a200af260
 
 + [ ] Add software disclaimer
 
-+ [ ] In realtimeBars() calculate the trailing VWAP, volatilities, and z-scores
++ [ ] Add model for ES strategy trading using VX curve by executing market orders  
+
++ [ ] Fix pairs_strat() in trade_wrapper.R: align the bar data according to the date stamps, then fix calculation of z-score  
+The traded instrument should be second in the list so that the model is run on contemporaneous data, after the bars for both instruments arrive?
+
++ [x] In realtimeBars() calculate the trailing VWAP and volatilities
 
 + [ ] Modify the function e_wrapper$realtimeBars() to be able to trade several instruments simultaneously  
 The function e_wrapper$model_fun() would require access to the trade_params parameter of several instruments.

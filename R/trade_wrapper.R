@@ -265,6 +265,13 @@ trade_wrapper <- function(ac_count,
     # cat("crossover_strat count_er: ", e_wrapper$da_ta$count_er, "\n")
     # browser()
 
+    ## Extract model parameters and state variables
+    posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
+    if (posi_tion == 0)
+      siz_e <- trade_params["siz_e"]/2
+    else
+      siz_e <- trade_params["siz_e"]
+
     ## Extract bars of prices from da_ta$bar_data
     count_er <- e_wrapper$da_ta$count_er[contract_id]
     # it <- (count_er - trade_params["lagg"])
@@ -282,30 +289,29 @@ trade_wrapper <- function(ac_count,
     # cat("crossover_strat trade_params: ", trade_params, "\n")
     if (IBrokers2::is.twsConnection(ib_connect)) {
       # Live trading mode
-      posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
       is_contrarian <- trade_params["is_contrarian"]
       if (is_contrarian) {
-        if ((w_ap > ew_ma) & (posi_tion > 0)) {
-          # Place buy market order
-          order_id <- IBrokers2::reqIds(ib_connect)
-          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=trade_params["siz_e"])
-          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
-        } else if ((w_ap < ew_ma) & (posi_tion < 0)) {
+        if ((w_ap > ew_ma) & (posi_tion >= 0)) {
           # Place sell market order
           order_id <- IBrokers2::reqIds(ib_connect)
-          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=trade_params["siz_e"])
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
+          IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+        } else if ((w_ap < ew_ma) & (posi_tion <= 0)) {
+          # Place buy market order
+          order_id <- IBrokers2::reqIds(ib_connect)
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
           IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
         }  # end if
       } else {
-        if ((w_ap > ew_ma) & (posi_tion < 0)) {
+        if ((w_ap > ew_ma) & (posi_tion <= 0)) {
           # Place buy market order
           order_id <- IBrokers2::reqIds(ib_connect)
-          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=trade_params["siz_e"])
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
           IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
-        } else if ((w_ap < ew_ma) & (posi_tion > 0)) {
+        } else if ((w_ap < ew_ma) & (posi_tion >= 0)) {
           # Place sell market order
           order_id <- IBrokers2::reqIds(ib_connect)
-          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=trade_params["siz_e"])
+          ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
           IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
         }  # end if
       }  # end if is_contrarian
@@ -329,6 +335,7 @@ trade_wrapper <- function(ac_count,
     # cat("pairs_strat count_er: ", e_wrapper$da_ta$count_er, "\n")
     # browser()
 
+    ## Extract model parameters and state variables
     look_back <- trade_params["look_back"]
     thresh_old <- trade_params["thresh_old"]
     posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
@@ -337,8 +344,9 @@ trade_wrapper <- function(ac_count,
     ## Extract bars of prices from da_ta$bar_data
     count_er <- e_wrapper$da_ta$count_er[contract_id]
     # it <- (count_er - trade_params["lagg"])
+    bar_ref <- e_wrapper$da_ta$bar_data[[1]][((count_er-look_back+1):count_er), ]
     bar_new <- e_wrapper$da_ta$bar_data[[contract_id]][((count_er-look_back+1):count_er), ]
-    bar_ref <- e_wrapper$da_ta$bar_data[[2]][((count_er-look_back+1):count_er), ]
+    cat(cbind(bar_ref[, 1, drop=FALSE], bar_new[, 1, drop=FALSE]), "\n")
 
     ## Perform regression in C++
     de_sign <- cbind(bar_new[, 7], bar_ref[, 7])
@@ -364,7 +372,7 @@ trade_wrapper <- function(ac_count,
       # browser()
       n_shares <- round(co_eff*siz_e)
       if (is_contrarian) {
-        if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion > 0)) {
+        if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion >= 0)) {
           # Place buy market order
           order_id <- IBrokers2::reqIds(ib_connect)
           ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
@@ -372,7 +380,7 @@ trade_wrapper <- function(ac_count,
           order_id <- IBrokers2::reqIds(ib_connect)
           ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=n_shares)
           IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
-        } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion < 0)) {
+        } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion <= 0)) {
           # Place sell market order
           order_id <- IBrokers2::reqIds(ib_connect)
           ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
@@ -382,7 +390,7 @@ trade_wrapper <- function(ac_count,
           IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
         }  # end if
       } else {
-        if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion > 0)) {
+        if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion >= 0)) {
           # Place buy market order
           order_id <- IBrokers2::reqIds(ib_connect)
           ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
@@ -390,7 +398,7 @@ trade_wrapper <- function(ac_count,
           order_id <- IBrokers2::reqIds(ib_connect)
           ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=n_shares)
           IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
-        } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion < 0)) {
+        } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion <= 0)) {
           # Place sell market order
           order_id <- IBrokers2::reqIds(ib_connect)
           ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
