@@ -1,0 +1,931 @@
+---
+title: "Real-time Trading via Interactive Brokers with Package iBrokers2"
+author: "Jerzy Pawlowski, NYU Tandon School of Engineering"
+date: "June 27, 2019"
+output:
+  ioslides_presentation:
+    logo: image/tandon_long_color.png
+    self_contained: yes
+    smaller: yes
+    transition: 0.1
+    widescreen: yes
+css: slides.css
+affiliation: NYU Tandon School of Engineering
+email: jp3900@nyu.edu
+conference_address: Stevens Institute of Technology
+subtitle: Stevens Conference on High-Frequency Finance and Analytics
+abstract: Package iBrokers2 for Real-time Trading With Interactive Brokers
+---
+
+```{r, setup, include=FALSE}
+# Set horizontal image position - adjusts too much
+# knitr::opts_chunk$set(out.extra='style="float:left;"')
+# knitr::opts_chunk$set(out.extra='style="float:right;"')
+# knitr::opts_chunk$set(out.extra='style="display:block; margin:auto;"')
+library(png)
+library(grid)
+```
+
+
+## Implementing a *Hedge Fund in a Box*  
+
+<div class="column_left_50">
+
+- In the past, only large institutional investors had the resources to implement real-time, algorithmic trading.  
+
+- The second internet revolution and open-source software have recently given small investors the tools for creating a *Hedge Fund in a Box*, for real-time trading.  
+
+- This presentation is a *technical demonstration* of how to implement real-time trading, using the *R* language and Interactive Brokers.  
+
+- It will not be about potential market anomalies, nor about promising trading strategies.  
+
+- **Disclosure:** I have a personal account with Interactive Brokers.  But I do not have any other relationships with Interactive Brokers, and I do not endorse or recommend them.  
+
+
+</div>
+
+<div class="column_right_50">
+
+The *R* Project for Statistical Computing  
+
+<a href="https://www.r-project.org/" target="_blank"> <img src="figure/Rlogo.png" align="left"> </img> </a>  
+
+
+</div>
+
+
+## What is Package *IBrokers2*?  
+
+<div class="column_left_50">
+
+- <a href="https://github.com/algoquant/iBrokers2" target="_blank">*iBrokers2*</a> is an open-source package written in *R*, derived from package <a href="https://cran.r-project.org/web/packages/iBrokers/index.html" target="_blank">*iBrokers*</a>.  
+
+- The package *IBrokers2* allows users to test their own trading strategies in paper trading, without having to program the IB API directly.  
+
+- The package *IBrokers2* can be an element of a toolkit for developing trading strategies, and testing them in paper trading.  
+
+- The package IBrokers2 is *NOT* a software product for inexperienced users, and it requires strong knowledge of *R* and the IB API.
+
+- The package *IBrokers2* does NOT provide realistic trading strategies.
+
+- The package *IBrokers2* comes with no warranty, and it is not affiliated or endorsed by Interactive Brokers.
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Install and load package IBrokers2
+devtools::install_github(repo="algoquant/IBrokers2")
+library(IBrokers2)
+```
+
+</div>
+
+
+
+## Why the *R* Language?  
+
+<div class="column_left_50">
+
+- *R* is widely used for data science and machine learning.  
+
+- *R* has a large user base of financial quants.  
+
+- *R* provides higher order functions with the ability to *program on the language*.  
+
+- Packages <a href="https://cran.r-project.org/web/packages/xts/index.html" target="_blank">*xts*</a> and <a href="https://cran.r-project.org/web/packages/quantmod/index.html" target="_blank">*quantmod*</a> for time series.  
+
+- Package <a href="https://cran.r-project.org/web/packages/Rcpp/index.html" target="_blank">*Rcpp*</a> for integrating *C++* code with *R*.  
+
+- Package <a href="https://cran.r-project.org/web/packages/shiny/index.html" target="_blank">*shiny*</a> for interactive plots.  
+
+- Package <a href="https://cran.r-project.org/web/packages/iBrokers/index.html" target="_blank">*iBrokers*</a> for Interactive Brokers.  
+
+</div>
+
+<div class="column_right_50">
+
+<a href="https://www.r-project.org/" target="_blank"> <img src="figure/Rlogo.png" align="left"> </img> </a>  
+
+<br>
+<br>
+<br>
+<br>
+
+<a href="https://cran.r-project.org/web/packages/shiny/index.html" target="_blank"> <img src="figure/shiny.png" width="200" height="200" align="left"> </img> </a>  
+
+
+</div>
+
+
+
+## Executing Real-time Trading Strategies  
+
+<div class="column_left_50">
+
+- Real-time trading requires running a programmatic loop:  
+  - A trading model is updated with streaming market data aqcuired via an API,  
+  - The model outputs are fed into an order management system to place trade orders via an API.  
+
+- The package <a href="https://cran.r-project.org/web/packages/IBrokers/index.html" target="_blank">*IBrokers*</a> contains *R* functions for downloading live market data via the <a href="https://interactivebrokers.github.io/tws-api/" target="_blank">API of Interactive Brokers (IB API)</a>, and for placing trade orders to Interactive Brokers.  
+
+- The function `iBrokers::reqRealTimeBars()` downloads live (real-time) *OHLC* bars of market data from Interactive Brokers.  
+
+- The function `IBrokers::twsOrder()` places trade orders to Interactive Brokers.  
+
+</div>
+
+<div class="column_right_50">
+
+<img src="figure/real_time_trading.png" width="650" height="500" align="left"> </img>
+
+
+</div>
+
+
+
+## The Package *IBrokers* for Interactive Brokers  
+
+<div class="column_left_50">
+
+- The package <a href="https://cran.r-project.org/web/packages/IBrokers/index.html" target="_blank">*IBrokers*</a> allows downloading live market data via the <a href="https://interactivebrokers.github.io/tws-api/" target="_blank">API of Interactive Brokers (IB API)</a>
+
+- The function `twsConnect()` opens a connection to the *IB API* via the <a href="https://interactivebrokers.github.io/tws-api/initial_setup.html" target="_blank">IB Trader Workstation (TWS)</a>.  
+
+- The function `reqRealTimeBars()` downloads live (real-time) *OHLC* bars of market data.  
+
+- `reqRealTimeBars()` relies on the functions `eWrapper.RealTimeBars.CSV()` and `twsCALLBACK` to process real-time market events (trades and quotes).  
+
+- The function `eWrapper.RealTimeBars.CSV()` creates an *eWrapper* object designed for processing *OHLC* price data.
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Install and load package IBrokers
+install.packages("IBrokers")
+library(IBrokers)
+# Connect to Interactive Brokers TWS via API
+ib_connect <- IBrokers::twsConnect(port=7497)
+# Define S&P Emini future June 2019 contract
+con_tract <- IBrokers::twsFuture(symbol="ES",
+  exch="GLOBEX", expiry="201909")
+# Get list with instrument information
+IBrokers::reqContractDetails(conn=ib_connect, 
+                             Contract=con_tract)
+# Open file connection for data download
+file_name <- "C:/Develop/data/ib_data/ES_ohlc_live.csv"
+file_connect <- file(file_name, open="w")
+# Download live data to file
+### <b>
+IBrokers::reqRealTimeBars(conn=ib_connect,
+           Contract=con_tract, barSize="1",
+           eventWrapper=eWrapper.RealTimeBars.CSV(1),
+           file=file_connect)
+### </b>
+# Close the Interactive Brokers API connection
+IBrokers::twsDisconnect(ib_connect)
+# Close data file
+close(file_connect)
+```
+
+</div>
+
+
+
+## Market Event Processing Using Package *IBrokers*  
+
+<div class="column_left_50">
+
+- Market events can be either *trade events* or *market quotes*.  
+
+- The *OHLC* market data arrives from Interactive Brokers in 5-second intervals.
+
+- Streaming market events are processed in a *callback loop* which runs inside the function `twsCALLBACK()`.  
+
+- The function `twsCALLBACK()` first creates an *eWrapper* object by calling the function `eWrapper.RealTimeBars.CSV()`, and then passes it to the function `processMsg()`.  
+
+- The function `twsCALLBACK()` then calls `processMsg()` in a *callback loop*.  
+
+- The function `processMsg()` processes individual market events by calling the appropriate *eWrapper* *handlers* and saving the data into the *eWrapper* environment.  
+
+</div>
+
+<div class="column_right_50">
+
+<img src="figure/market_event_processing2.png" width="650" height="500" align="left"> </img>
+
+</div>
+
+
+
+## Trade Processing Using Package *IBrokers2*  
+
+<div class="column_left_50">
+
+- The trade processing framework is similar to that for downloading real-time *OHLC* market data using `reqRealTimeBars()`.  
+
+- The main difference is the `trade_wrapper()` function, which creates a *trade wrapper* environment, containing the data handler `realtimeBars()` and the trading model `model_function()`.  
+
+- The function `trade_realtime()` first calls `trade_wrapper()` to create a *trade wrapper* environment, and then calls `call_back()` to run a *callback loop*.  
+
+- `call_back()` calls the `processMsg()` in a *callback loop*, which calls the *handler* `realtimeBars()`.  
+
+- The function `realtimeBars()` updates the *trade wrapper* environment with new data and then runs the trading model `model_function()`.  
+
+</div>
+
+<div class="column_right_50">
+
+<img src="figure/trade_processing.png" width="600" height="500" align="left"> </img>
+
+</div>
+
+
+
+## Defining Contracts and Trading Parameters  
+
+<div class="column_left_50">
+
+- The instrument parameters specify the contract or security, the exchange, etc.  
+
+- The trading instruments and their parameters are specified as lists to allow trading multiple instruments simultaneously.
+
+- The list of trading parameters contains the name of the trading model function, and a vector of its parameters.
+
+- The function `model_function()` is the trading model function, which reruns the trading model and places trade orders using `IBrokers2::twsOrder()`.
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Define instrument for trading ES futures contracts
+con_tracts <- list(
+  ES=IBrokers2::twsFuture(
+    symbol="ES", 
+    exch="GLOBEX", 
+    expiry="201909"))
+
+# Define parameters of market making strategy
+trade_params <- list(ES=list(
+  model_function="make_markets",
+  model_params=c(buy_spread=0.25, 
+                 sell_spread=0.25, 
+                 siz_e=1, 
+                 pos_limit=10, 
+                 lagg=2, 
+                 lamb_da=0.05)))
+
+```
+
+</div>
+
+
+
+## The Trading Model Function  
+
+<div class="column_left_40">
+
+- Users can define their own custom trading model function inside the `trade_wrapper()` function.  
+
+- We can define a naive market-making strategy as follows:  
+  - Place a limit *buy* order at previous bar *Low* price minus *buy spread*,  
+  - Place a limit *sell* order at previous bar *High* price plus *sell spread*.  
+
+- The function `make_markets()` is the trading model function, which reruns the market-making model and places limit trade orders using `twsOrder()`.
+
+- The function `make_markets()` first cancels the previous trade orders.  
+
+</div>
+
+<div class="column_right_60">
+
+```{r, eval=FALSE, echo=TRUE}
+### The function make_markets() performs a market making strategy
+make_markets <- function(contract_id, trade_params, ib_connect) {
+  ## Extract bars of prices from da_ta$bar_data
+  count_er <- e_wrapper$da_ta$count_er[contract_id]
+  bar_new <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]
+  bar_lag <- e_wrapper$da_ta$bar_data[[contract_id]][count_er - trade_params["lagg"], ]
+  ## Calculate the trade limit prices
+  buy_limit <- (bar_lag[4] - trade_params["buy_spread"])
+  sell_limit <- (bar_lag[3] + trade_params["sell_spread"])
+  # buy_limit should be no greater than close price
+  clo_se <- bar_new[5]
+  buy_limit <- min(clo_se, buy_limit)
+  # sell_limit should be no less than close price
+  sell_limit <- max(clo_se, sell_limit)
+
+  ## Cancel previous limit orders
+  if (IBrokers2::is.twsConnection(ib_connect)) {
+    buy_id <- e_wrapper$da_ta$trade_ids[contract_id, "buy_id"]
+    if (!is.na(buy_id))
+      IBrokers2::cancelOrder(ib_connect, buy_id)
+    sell_id <- e_wrapper$da_ta$trade_ids[contract_id, "sell_id"]
+    if (!is.na(sell_id))
+      IBrokers2::cancelOrder(ib_connect, sell_id)
+  }  # end if
+```
+
+</div>
+
+
+## Placing Limit Trade Orders  
+
+<div class="column_left_40">
+
+- The *trade wrapper* environment maintains data about the state of the trading environment, such as trade IDs, positions, etc.  
+
+- New limit orders are placed only if the current position doesn't exceed the limit.  
+
+</div>
+
+<div class="column_right_60">
+
+```{r, eval=FALSE, echo=TRUE}
+## Place new limit orders
+if (IBrokers2::is.twsConnection(ib_connect)) {
+  posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
+  # Place buy limit order only if position doesn't exceed limit
+  if (posi_tion < trade_params["pos_limit"]) {
+    buy_id <- IBrokers2::reqIds(ib_connect)
+    buy_order <- IBrokers2::twsOrder(
+      buy_id, orderType="LMT",
+      lmtPrice=buy_limit, action="BUY", 
+      totalQuantity=trade_params["siz_e"])
+    IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], buy_order)
+    e_wrapper$da_ta$trade_ids[contract_id, "buy_id"] <<- buy_id
+  }  # end if
+  # Place sell limit order only if position doesn't exceed limit
+  if (posi_tion > -trade_params["pos_limit"]) {
+    sell_id <- IBrokers2::reqIds(ib_connect)
+    sell_order <- IBrokers2::twsOrder(
+      sell_id, orderType="LMT",
+      lmtPrice=sell_limit, action="SELL",
+      totalQuantity=trade_params["siz_e"])
+    IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], sell_order)
+    e_wrapper$da_ta$trade_ids[contract_id, "sell_id"] <<- sell_id
+  }  # end if
+}  # end if
+invisible(list(buy_limit=buy_limit, sell_limit=sell_limit))
+}  # end make_markets
+```
+
+</div>
+
+
+
+## Real-time Trading Using Package *IBrokers2*  
+
+<div class="column_left_50">
+
+- The function `trade_realtime()` first calls `trade_wrapper()` to create a *trade wrapper* environment, and then calls `call_back()` to run a *callback loop*.  
+
+- Every time new data arrives, `model_function()` reruns the trading model and places trade orders using `IBrokers2::twsOrder()`.
+
+- Most of the code changes needed to implement a new trading strategy occur in the functions `trade_wrapper()`, the data handler `realtimeBars()`, and the trading model `model_function()`.  
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Open file connection for data download
+file_names <- "C:/Develop/data/ib_data/ES_ohlc_live.csv"
+file_connects <- lapply(file_names, 
+  function(file_name) file(file_name, open="w"))
+# Open the IB connection to TWS
+ac_count <- "DU1851021"
+ib_connect <- IBrokers2::twsConnect(port=7497)
+# Run the trading model (strategy):
+### <b>
+IBrokers2::trade_realtime(
+  ib_connect=ib_connect,
+  Contract=con_tracts,
+  eventWrapper=IBrokers2::trade_wrapper(
+    ac_count=ac_count,
+    con_tracts=con_tracts,
+    trade_params=trade_params,
+    file_connects=file_connects,
+    warm_up=10),
+  CALLBACK=IBrokers2::call_back,
+  file=file_connects)
+### </b>
+# Stop the trading loop by hitting the red STOP button in RStudio
+# Close the Interactive Brokers API connection
+IBrokers2::twsDisconnect(ib_connect)
+# Close data files
+for (file_connect in file_connects) close(file_connect)
+```
+
+</div>
+
+
+
+## The *EWMA* Crossover Strategy  
+
+<div class="column_left_50">
+
+- The Exponentially Weighted Moving Average price (*EWMA*) is equal to the average of prices weighted by a decay parameter $\lambda$. 
+
+- The parameter $\lambda$ determines the rate of decay of the exponential weights, with smaller values of $\lambda$ producing faster decay, giving more weight to recent prices, and vice versa.
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Define instrument for trading ES futures contracts
+con_tracts <- list(
+  ES=IBrokers2::twsFuture(
+    symbol="ES", 
+    exch="GLOBEX", 
+    expiry="201909"))
+
+# Define parameters of EWMA crossover strategy
+trade_params <- list(ES=list(
+  model_function="crossover_strat",
+  model_params=c(is_contrarian=TRUE, 
+                 siz_e=2, 
+                 lamb_da=0.2)))
+```
+
+</div>
+
+
+
+## The Crossover Strategy Model Function  
+
+<div class="column_left_40">
+
+- The function `crossover_strat()` is the trading model function for a crossover strategy.  
+
+</div>
+
+<div class="column_right_60">
+
+```{r, eval=FALSE, echo=TRUE}
+### The function crossover_strat() performs an EWMA crossover strategy
+crossover_strat <- function(contract_id, trade_params, ib_connect) {
+  ## Extract model parameters and state variables
+  count_er <- e_wrapper$da_ta$count_er[contract_id]
+  posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
+  if (posi_tion == 0)
+    siz_e <- trade_params["siz_e"]/2
+  else
+    siz_e <- trade_params["siz_e"]
+  is_contrarian <- trade_params["is_contrarian"]
+  ## Extract bars of prices from da_ta$bar_data
+  bar_new <- e_wrapper$da_ta$bar_data[[contract_id]][count_er, ]
+  w_ap <- bar_new[7]
+  ew_ma <- e_wrapper$da_ta$ewma[contract_id]
+```
+
+</div>
+
+
+
+## Placing Market Trade Orders  
+
+<div class="column_left_40">
+
+- We can define a naive contrarian *EWMA* crossover strategy as follows:  
+  - Place a market *sell* order when the current price crosses above the *EWMA*,  
+  - Place a market *buy* order when the current price crosses below the *EWMA*.  
+
+- Market orders are placed immediately after the *EWMA* price crosses the current price.  
+
+- The *trade wrapper* environment maintains data about the state of the trading environment, such as trade IDs, positions, etc.  
+
+</div>
+
+<div class="column_right_60">
+
+```{r, eval=FALSE, echo=TRUE}
+## Place market orders
+if (IBrokers2::is.twsConnection(ib_connect)) {
+  is_contrarian <- trade_params["is_contrarian"]
+  if (is_contrarian) {
+    if ((w_ap > ew_ma) & (posi_tion >= 0)) {
+      # Place sell market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(
+        order_id, orderType="MKT", action="SELL", 
+        totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+    } else if ((w_ap < ew_ma) & (posi_tion <= 0)) {
+      # Place buy market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(
+        order_id, orderType="MKT", action="BUY", 
+        totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+    }  # end if
+  } else {
+    if ((w_ap > ew_ma) & (posi_tion <= 0)) {
+      # Place buy market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+    } else if ((w_ap < ew_ma) & (posi_tion >= 0)) {
+      # Place sell market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+    }  # end if
+  }  # end if is_contrarian
+}  # end if
+invisible(list(WAP=w_ap, EWMA=ew_ma))
+}  # end crossover_strat
+```
+
+</div>
+
+
+
+## Running the *EWMA* Crossover Strategy  
+
+<div class="column_left_50">
+
+- The *EWMA* crossover strategy is run by calling the function `trade_realtime()`, in the same way as for other strategies.  
+
+- The function `trade_realtime()` first calls `trade_wrapper()` to create a *trade wrapper* environment, and then calls `call_back()` to run a *callback loop*.  
+
+- Every time new data arrives, `model_function()` reruns the trading model and places trade orders using `IBrokers2::twsOrder()`.
+
+- Most of the code changes needed to implement a new trading strategy occur in the functions `trade_wrapper()`, the data handler `realtimeBars()`, and the trading model `model_function()`.  
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Open file connection for data download
+file_names <- "C:/Develop/data/ib_data/ES_ohlc_live.csv"
+file_connects <- lapply(file_names, 
+  function(file_name) file(file_name, open="w"))
+# Open the IB connection to TWS
+ac_count <- "DU1851021"
+ib_connect <- IBrokers2::twsConnect(port=7497)
+# Run the trading model (strategy):
+### <b>
+IBrokers2::trade_realtime(
+  ib_connect=ib_connect,
+  Contract=con_tracts,
+  eventWrapper=IBrokers2::trade_wrapper(
+    ac_count=ac_count,
+    con_tracts=con_tracts,
+    trade_params=trade_params,
+    file_connects=file_connects,
+    warm_up=10),
+  CALLBACK=IBrokers2::call_back,
+  file=file_connects)
+### </b>
+# Stop the trading loop by hitting the red STOP button in RStudio
+# Close the Interactive Brokers API connection
+IBrokers2::twsDisconnect(ib_connect)
+# Close data files
+for (file_connect in file_connects) close(file_connect)
+```
+
+</div>
+
+
+
+## The Pairs Trading Strategy  
+
+<div class="column_left_50">
+
+- In the pairs trading strategy, a regression of the prices is performed, over a rolling look-back window.  
+
+- The parameter *look_back* is the number of data points in the look-back window.  
+
+- The parameter *thresh_old* is the threshold at which a trade is triggered.  
+
+- The parameter *siz_e* is the fixed number of shares of the first stock.  
+
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Define instruments for trading two stocks: GOOG and AAPL
+sym_bols <- c("GOOG", "AAPL")
+con_tracts <- lapply(sym_bols, 
+  IBrokers2::twsEquity, primary="SMART")
+names(con_tracts) <- sym_bols
+
+# Define parameters for pairs trading two stocks: GOOG and AAPL
+trade_params <- list(
+  GOOG=list(
+    model_function="pairs_strat",
+    model_params=c(
+      is_contrarian=TRUE, 
+      siz_e=100, 
+      look_back=50, 
+      thresh_old=1.0, 
+      lamb_da=0.2)),
+  AAPL=NULL)
+```
+
+</div>
+
+
+
+## The Pairs Trading Strategy Model Function  
+
+<div class="column_left_40">
+
+- The function `pairs_strat()` is the trading model function for a pairs trading strategy.  
+
+- In the pairs trading strategy, a regression of the prices is performed, over a rolling look-back window.  
+
+- The regression can be performed very efficiently in *C++* using the package <a href="https://cran.r-project.org/web/packages/Rcpp/index.html" target="_blank">*Rcpp*</a> for integrating *C++* code with *R*.  
+
+- The residual z-score of the regression determines the trade decision.  
+
+
+</div>
+
+<div class="column_right_60">
+
+```{r, eval=FALSE, echo=TRUE}
+  ### The function pairs_strat() performs a pairs trading strategy
+  pairs_strat <- function(contract_id, trade_params, ib_connect) {
+    ## Extract model parameters and state variables
+    look_back <- trade_params["look_back"]
+    thresh_old <- trade_params["thresh_old"]
+    posi_tion <- e_wrapper$da_ta$portfolio[contract_id, "position"]
+    siz_e <- trade_params["siz_e"]
+    is_contrarian <- trade_params["is_contrarian"]
+    ## Extract bars of prices from da_ta$bar_data
+    count_er <- e_wrapper$da_ta$count_er[contract_id]
+    bar_new <- e_wrapper$da_ta$bar_data[[contract_id]][((count_er-look_back+1):count_er), ]
+    bar_ref <- e_wrapper$da_ta$bar_data[[2]][((count_er-look_back+1):count_er), ]
+    ## Perform regression in C++
+    de_sign <- cbind(bar_new[, 7], bar_ref[, 7])
+    de_sign <- na.omit(de_sign)
+    colnames(de_sign) <- e_wrapper$da_ta$name_s
+    ### <b>
+    l_m <- HighFreq::calc_lm(de_sign[, 1], de_sign[, 2, drop=FALSE])
+    ### </b>
+    co_eff <- l_m$coefficients[2, 1]
+    z_score <- l_m$z_score
+    ## Write to console
+    ew_ma <- e_wrapper$da_ta$ewma[contract_id]
+    w_ap <- bar_new[NROW(bar_new), 7]
+    cat("technical data: \t", paste0("coeff=", round(co_eff, 2)), paste0("z-score=", round(z_score, 2)), "\n")
+```
+
+</div>
+
+
+
+## Placing Market Trade Orders  
+
+<div class="column_left_40">
+
+- We can define a naive contrarian pairs trading strategy as follows:  
+  - Place a market pairs *sell* order when the z-score is above the trade threshold,  
+  - Place a market pairs *buy* order when the z-score is below the trade threshold.  
+
+- The *trade wrapper* environment maintains data about the state of the trading environment, such as trade IDs, positions, etc.  
+
+</div>
+
+<div class="column_right_60">
+
+```{r, eval=FALSE, echo=TRUE}
+## Place market orders
+if (IBrokers2::is.twsConnection(ib_connect)) {
+  n_shares <- round(co_eff*siz_e)
+  if (is_contrarian) {
+    if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion > 0)) {
+      # Place buy market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(
+        order_id, orderType="MKT", action="SELL", 
+        totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(
+        order_id, orderType="MKT", action="BUY", 
+        totalQuantity=n_shares)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+    } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion < 0)) {
+      # Place sell market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=n_shares)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+    }  # end if
+  } else {
+    if (!is.na(z_score) && (z_score > thresh_old) && (posi_tion > 0)) {
+      # Place buy market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=n_shares)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+    } else if (!is.na(z_score) && (z_score < -thresh_old) && (posi_tion < 0)) {
+      # Place sell market order
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="SELL", totalQuantity=siz_e)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[contract_id]], ib_order)
+      order_id <- IBrokers2::reqIds(ib_connect)
+      ib_order <- IBrokers2::twsOrder(order_id, orderType="MKT", action="BUY", totalQuantity=n_shares)
+      IBrokers2::placeOrder(ib_connect, e_wrapper$da_ta$con_tracts[[2]], ib_order)
+    }  # end if
+  }  # end if is_contrarian
+}  # end if
+invisible(list(co_eff=co_eff, z_score=z_score))
+}  # end pairs_strat
+```
+
+</div>
+
+
+
+## Running the Pairs Trading Strategy  
+
+<div class="column_left_50">
+
+- The pairs trading strategy is run by calling the function `trade_realtime()`, in the same way as for other strategies.  
+
+- The function `trade_realtime()` first calls `trade_wrapper()` to create a *trade wrapper* environment, and then calls `call_back()` to run a *callback loop*.  
+
+- Every time new data arrives, `model_function()` reruns the trading model and places trade orders using `IBrokers2::twsOrder()`.
+
+- Most of the code changes needed to implement a new trading strategy occur in the functions `trade_wrapper()`, the data handler `realtimeBars()`, and the trading model `model_function()`.  
+
+</div>
+
+<div class="column_right_50">
+
+```{r, eval=FALSE, echo=TRUE}
+# Open file connection for data download
+data_dir <- "C:/Develop/data/ib_data"
+file_names <- file.path(data_dir, 
+  paste0(names(con_tracts), "_", format(Sys.time(), format="%m_%d_%Y_%H_%M"), ".csv"))
+file_connects <- lapply(file_names, 
+  function(file_name) file(file_name, open="w"))
+# Open the IB connection to TWS
+ac_count <- "DU1851021"
+ib_connect <- IBrokers2::twsConnect(port=7497)
+# Run the trading model (strategy):
+### <b>
+IBrokers2::trade_realtime(
+  ib_connect=ib_connect,
+  Contract=con_tracts,
+  eventWrapper=IBrokers2::trade_wrapper(
+    ac_count=ac_count,
+    con_tracts=con_tracts,
+    trade_params=trade_params,
+    file_connects=file_connects,
+    warm_up=10),
+  CALLBACK=IBrokers2::call_back,
+  file=file_connects)
+### </b>
+# Stop the trading loop by hitting the red STOP button in RStudio
+# Close the Interactive Brokers API connection
+IBrokers2::twsDisconnect(ib_connect)
+# Close data files
+for (file_connect in file_connects) close(file_connect)
+```
+
+</div>
+
+
+
+## The *eWrapper* Object  
+
+<div class="column_left_50">
+
+- An *eWrapper* object consists of a *data environment* and *handlers* (methods) for formatting and adding new data to the *data environment*.
+
+- The function `eWrapper()` creates a generic *eWrapper* object.
+
+- The function `eWrapper.RealTimeBars.CSV()` creates an *eWrapper* object designed for processing *OHLC* price data.
+
+- The functionality of package *IBrokers* can easily be extended by writing new *eWrapper* objects, designed for processing different types of data and performing different tasks.
+
+</div>
+
+<div class="column_right_50">
+
+<img src="figure/eWrapper_object.png" width="600" height="450" align="left"> </img>
+
+</div>
+
+
+
+## The *Trade Wrapper* Environment  
+
+<div class="column_left_50">
+
+- The functionality of package *IBrokers* can easily be extended to trading by writing a new *eWrapper* object.
+
+- The function `IBrokers2::trade_wrapper()` creates a *trade wrapper* environment (a modified *eWrapper*) designed for real-time trading.
+
+- The *trade wrapper* data environment contains buffers for *OHLC* market data, trading model parameters, instrument positions, open trade orders, etc.  
+
+- The *trade wrapper* contains the data handler `realtimeBars()` and the trading model `model_function()`.  
+
+- The function `IBrokers2::trade_wrapper()` can be modified to support different market instruments and trading models.  
+
+</div>
+
+<div class="column_right_50">
+
+<img src="figure/trade_wrapper_object.png" width="600" height="450" align="left"> </img>
+
+</div>
+
+
+
+## Functions in Package *IBrokers2*  
+
+<div class="column_left_50">
+
+- Most of the functions in package *IBrokers2* were derived from those in *IBrokers*.  
+
+- `IBrokers2::trade_realtime()` initiates real-time trading.
+
+- `IBrokers2::trade_wrapper()` creates a *trade wrapper* environment, containing the data handler `realtimeBars()` and the trading model `model_function()`.  
+
+- The function `realtimeBars()` is a *trade wrapper* handler which updates the data environment with new data and then runs the trading model `model_function()`.  
+
+- `model_function()` reruns the trading model using updated market data, and places trade orders using `IBrokers2::twsOrder()`.
+
+- The function `IBrokers2::call_back()` performs the *callback loop*.  
+
+</div>
+
+<div class="column_right_50">
+
+<img src="figure/functions_IBrokers2.png" width="600" height="400" align="left"> </img>
+
+</div>
+
+
+
+## Future Development of Package *IBrokers2*  
+
+<div class="column_left_50">
+
+### Current state  
+
+- The package *IBrokers2* is currently an initial proof of concept, rather than a working application.
+
+- The package *IBrokers2* is derived from the package *IBrokers*, and is fully backward compatible with it.  
+
+- All the *IBrokers* functions and variables are preserved exactly in *IBrokers2*, while some additional functions have been added to provide functionality for real-time trading.  
+
+
+### Future development  
+
+- Rewrite critical functions using *Rcpp* and the C++ API of Interactive Brokers.  
+
+</div>
+
+<div class="column_right_50">
+
+
+### Applications  
+
+- Education and trading competitions: Interactive Brokers has been kind to provide student *paper trading* accounts, together with market data. 
+
+- Crowd-sourced hedge fund: the package *IBrokers2* could become the foundation for a system similar to <a href="https://www.quantopian.com/" target="_blank">*Quantopian*</a>.
+
+### Disclaimer  
+
+- This software comes with no warranty and should not be used in live trading with real capital at risk.
+This software is not affiliated or endorsed by Interactive Brokers.  
+
+
+
+</div>
+
+
+
+## Thank You  
+
+- Many thanks to Jeff Ryan for developing the package *IBrokers*.  
+
+- The package *IBrokers2* is available on GitHub:  
+https://github.com/algoquant/iBrokers2  
+
+### Contact information  
+
+NYU email: <a title="NYU email"> jp3900@nyu.edu </a>  
+
+LinkedIn profile:  
+https://www.linkedin.com/in/jerzypawlowski  
+
