@@ -23,6 +23,9 @@ library(rutils)
 devtools::install_github(repo="algoquant/IBrokers2")
 library(IBrokers2)
 
+# Load the trading function written as an eWrapper:
+# source("C:/Develop/R/IBrokers2/R/trade_wrapper.R")
+
 
 ### Scripts for running a simple trading strategy in a callback loop:
 
@@ -42,7 +45,7 @@ library(IBrokers2)
 ## Define parameters for strategies
 
 # Define instrument for trading one ES futures contract
-con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201909"))
+con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201912"))
 
 # Define parameters of market making strategy
 trade_params <- list(ES=list(model_function="make_markets",
@@ -115,7 +118,7 @@ for (file_connect in file_connects) close(file_connect)
 # code in the function model_fun().
 
 # Define named lists for trading one contract
-con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201909"))
+con_tracts <- list(ES=IBrokers2::twsFuture(symbol="ES", exch="GLOBEX", expiry="201912"))
 trade_params <- list(ES=c(buy_spread=0.75, sell_spread=0.75, siz_e=1, lagg=2, lamb_da=0.05))
 
 # Open the files for storing the bar data
